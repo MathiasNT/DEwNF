@@ -3,8 +3,6 @@ from sklearn import datasets
 import matplotlib.pyplot as plt
 import numpy as np
 
-# todo: fix all the pep8 stuff
-
 
 class RotatingTwoMoonsConditionalSampler(object):
     def __init__(self, noise=0.05, random_seed=42):
