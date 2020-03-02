@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_4_contexts_cond_flow(flow_dist, contexts, n_samples=256):
