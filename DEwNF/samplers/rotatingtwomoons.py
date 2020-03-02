@@ -15,37 +15,37 @@ class RotatingTwoMoonsConditionalSampler(object):
 
     def conditioned_sample(self, n_samples=100, theta=torch.tensor([0])):
         # Draw two moon samples and translate
-        X, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
-        X_t = X - [0.5, 0.25]
+        x, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
+        x_t = x - [0.5, 0.25]
 
         # Rotate points by theta radians
-        X_r = self._rotate_points(X_t, theta).astype(np.float32)
+        x_r = self._rotate_points(x_t, theta).astype(np.float32)
 
-        return torch.from_numpy(X_r), torch.from_numpy(y)
+        return torch.from_numpy(x_r), torch.from_numpy(y)
 
     def conditioned_translated_sample(self, n_samples=100, theta=torch.tensor([0.]), trans=torch.tensor([0., 0.])):
         # Draw two moon samples, rotate and translate
-        X, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
-        X_t = X - [0.5, 0.25]
-        X_r = self._rotate_points(X_t, theta).astype(np.float32)
+        x, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
+        x_t = x - [0.5, 0.25]
+        x_r = self._rotate_points(x_t, theta).astype(np.float32)
 
-        X_r = torch.from_numpy(X_r)
-        X_tf = X_r + trans
+        x_r = torch.from_numpy(x_r)
+        x_tf = x_r + trans
 
-        return X_tf.type(torch.FloatTensor), torch.from_numpy(y), theta, trans
+        return x_tf.type(torch.FloatTensor), torch.from_numpy(y), theta, trans
 
     def joint_sample(self, n_samples):
         # Samples covariates
         theta = self.rotation_sampler.sample(sample_shape=[n_samples, 1])
 
         # Draw two moon samples and translate
-        X, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
-        X_t = X - [0.5, 0.25]
+        x, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
+        x_t = x - [0.5, 0.25]
 
         # Rotate points based on covariates
-        X_r = self._rotate_points(X_t, theta).astype(np.float32)
+        x_r = self._rotate_points(x_t, theta).astype(np.float32)
 
-        return torch.from_numpy(X_r), torch.from_numpy(y), theta
+        return torch.from_numpy(x_r), torch.from_numpy(y), theta
 
     def joint_translation_sample(self, n_samples):
         # Sample covariates
@@ -53,25 +53,25 @@ class RotatingTwoMoonsConditionalSampler(object):
         trans = self.translation_sampler.sample(sample_shape=[n_samples, 2])
 
         # Draw two moon samples and rotate points
-        X, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
-        X_t = X - [0.5, 0.25]
-        X_r = self._rotate_points(X_t, theta).astype(np.float32)
+        x, y = datasets.make_moons(n_samples=n_samples, shuffle=True, noise=self.noise)
+        x_t = x - [0.5, 0.25]
+        x_r = self._rotate_points(x_t, theta).astype(np.float32)
 
-        X_r = torch.from_numpy(X_r)
-        X_tf = X_r + trans
+        x_r = torch.from_numpy(x_r)
+        x_tf = x_r + trans
 
-        return X_tf.type(torch.FloatTensor), torch.from_numpy(y), theta, trans
+        return x_tf.type(torch.FloatTensor), torch.from_numpy(y), theta, trans
 
     def make_plot(self, n_samples=100, theta=torch.tensor([0])):
         """
         Function used to make fancy plot
         """
-        X, y = self.conditioned_sample(n_samples=n_samples, theta=theta)
+        x, y = self.conditioned_sample(n_samples=n_samples, theta=theta)
         fig = plt.figure()
         axe = ax = fig.gca()
         axe.set_xlim(-2, 2)
         axe.set_ylim(-2, 2)
-        sp, = axe.plot(X[:, 0], X[:, 1], color='k', marker='o', ls='')
+        sp, = axe.plot(x[:, 0], x[:, 1], color='k', marker='o', ls='')
 
         plt.show()
         return fig, axe, sp
