@@ -59,7 +59,7 @@ def sliding_plot_loss(train_loss_arr, test_loss_arr, window_size):
 def plot_samples(plot_flow_dist, x_plot, n_samples=256):
     x_s = plot_flow_dist.sample((n_samples,))
     if x_s.is_cuda:
-        x_s.cpu()
+        x_s = x_s.cpu()
     plt.figure(figsize=(4, 4))
     plt.scatter(x_plot[:, 0], x_plot[:, 1], c='r', s=5)
     plt.scatter(x_s[:, 0], x_s[:, 1], c='b', s=5)
