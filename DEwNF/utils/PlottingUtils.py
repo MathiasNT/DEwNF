@@ -19,3 +19,37 @@ def plot_4_contexts_cond_flow(flow_dist, contexts, n_samples=256):
     for ax in axs.flat:
         ax.label_outer()
     plt.show()
+
+
+def plot_loss(train_loss_arr, test_loss_arr):
+    """
+    Makes nice plots of the train and test loss
+    :param train_loss_arr: array
+    :param test_loss_arr: array
+    :return:
+    """
+    plt.figure()
+    plt.title("Losses")
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.plot(train_loss_arr)
+    plt.plot(test_loss_arr, '--')
+    plt.legend(['Train', 'Test'])
+    plt.show()
+
+
+def sliding_plot_loss(train_loss_arr, test_loss_arr, window_size):
+    """
+    Makes nice plots of the train and test loss
+    :param train_loss_arr: array
+    :param test_loss_arr: array
+    :return:
+    """
+    plt.figure()
+    plt.title("Losses")
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.plot(train_loss_arr[-window_size:])
+    plt.plot(test_loss_arr[-window_size:], '--')
+    plt.legend(['Train', 'Test'])
+    plt.show()
