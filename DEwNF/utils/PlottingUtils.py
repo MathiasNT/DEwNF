@@ -11,7 +11,7 @@ def plot_4_contexts_cond_flow(flow_dist, contexts, scaler, n_samples=256):
         cond_dist = flow_dist.condition(contexts[i])
         x_s = cond_dist.sample((n_samples,))
         if scaler is not None:
-            x_s = scaler.inverse_transform(x_s)
+            x_s = scaler.inverse_transform(x_s.cpu()).cuda()
         cur_axs.scatter(x_s[:, 0].cpu(), x_s[:, 1].cpu(), c='b', s=5)
         cur_axs.set_xlim(-6, 6)
         cur_axs.set_ylim(-6, 6)
