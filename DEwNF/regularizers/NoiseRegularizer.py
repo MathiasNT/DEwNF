@@ -35,13 +35,16 @@ def rule_of_thumb_noise_schedule(n, d, sigma):
     return h
 
 
-def approx_rule_of_thumb_noise_schedule(n, d):
+def approx_rule_of_thumb_noise_schedule(n, d, sigma):
     ex = -1 / (4 + d)
     h = n ** ex
     return h
 
 
-def square_root_noise_schedule(n, d):
+def square_root_noise_schedule(n, d, sigma):
     ex = -1 / (1 + d)
     h = n ** ex
     return h
+
+def no_regularization_schedule(n, d, sigma):
+    return 0
