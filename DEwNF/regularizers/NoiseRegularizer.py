@@ -46,5 +46,6 @@ def square_root_noise_schedule(n, d, sigma):
     h = n ** ex
     return h
 
+
 def no_regularization_schedule(n, d, sigma):
     return 0
