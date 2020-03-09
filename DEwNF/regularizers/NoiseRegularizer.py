@@ -19,8 +19,10 @@ class NoiseRegularizer(object):
         scales = torch.ones(z.shape)
 
         # Set scale to 0 to avoid adding noise to discrete dims
-        for dim in self.discrete_dims:
-            scales[:, dim] = 0
+        if self.discrete_dims is not None:
+            for dim in self.discrete_dims:
+                scales[:, dim] = 0
+
         if self.cuda:
             noise_dist = dist.Normal(means.cuda(), scales.cuda())
         else:
