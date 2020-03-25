@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
-
+import torch
 
 def plot_4_contexts_cond_flow(flow_dist, contexts, scaler, n_samples=256):
     assert contexts.shape[0] == 4, 'Need 4 contexts inorder to create 4 plots'
@@ -69,3 +70,21 @@ def plot_samples(plot_flow_dist, x_plot, scaler, n_samples=256):
     plt.scatter(x_s[:, 0], x_s[:, 1], c='b', s=5)
     plt.axis('equal')
     plt.show()
+
+
+def create_overlay(shape, bounds, flow_dist):
+    cm = matplotlib.cm.get_cmap('cividis')
+    nlats, nlons = shape
+
+    lats_array = torch.linspace(start=bounds[1][0], end=bounds[0][0], steps=nlats)
+    lons_array = torch.linspace(start=bounds[0][1], end=bounds[1][1], steps=nlons)
+    x, y = torch.meshgrid(lats_array, lons_array)
+
+    points = torch.stack((x.reshape(-1), y.reshape(-1)), axis=1)
+    data = flow_dist.log_prob(points).reshape(nlats, nlons).cpu().detach().numpy()
+
+    data = np.exp(data)
+    data = (data - data.min()) / (data.max() - data.min())
+
+    overlay = cm(data)
+    return lons_array, lats_array, overlay
