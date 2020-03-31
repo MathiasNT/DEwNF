@@ -79,9 +79,9 @@ def plot_train_results(train_loss_arr, test_loss_arr, no_noise_arr, start_idx=0,
     plt.title("Losses")
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.plot(train_loss_arr[start_idx:end_idx], ticks)
-    plt.plot(test_loss_arr[start_idx:end_idx], ticks, '--')
-    plt.plot(no_noise_arr[start_idx:end_idx], ticks, '--')
+    plt.plot(ticks, train_loss_arr[start_idx:end_idx])
+    plt.plot(ticks, test_loss_arr[start_idx:end_idx], '--')
+    plt.plot(ticks, no_noise_arr[start_idx:end_idx], '--')
     plt.legend(['Train', 'Test', 'No noise train'])
     plt.show()
 
