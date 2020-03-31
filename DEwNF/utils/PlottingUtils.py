@@ -59,7 +59,7 @@ def sliding_plot_loss(train_loss_arr, test_loss_arr, window_size):
     plt.show()
 
 
-def plot_train_results(train_loss_arr, test_loss_arr, no_noise_arr, start_idx=0, end_idx=None):
+def plot_train_results(train_loss_arr, test_loss_arr, no_noise_arr, start_idx=0, end_idx=None, freq = 10):
     """
     Makes nice plots of the train and test loss
     :param train_loss_arr: array
@@ -67,17 +67,21 @@ def plot_train_results(train_loss_arr, test_loss_arr, no_noise_arr, start_idx=0,
     :param no_noise_arr: array
     :param start_idx: int
     :param end_idx: int
+    :param freq: int
     :return:
     """
     if end_idx is None:
         end_idx = len(train_loss_arr)
+
+    ticks = [x*10 for x in range(len(train_loss_arr))]
+
     plt.figure()
     plt.title("Losses")
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.plot(train_loss_arr[start_idx:end_idx])
-    plt.plot(test_loss_arr[start_idx:end_idx], '--')
-    plt.plot(no_noise_arr[start_idx:end_idx], '--')
+    plt.plot(train_loss_arr[start_idx:end_idx], ticks)
+    plt.plot(test_loss_arr[start_idx:end_idx], ticks, '--')
+    plt.plot(no_noise_arr[start_idx:end_idx], ticks, '--')
     plt.legend(['Train', 'Test', 'No noise train'])
     plt.show()
 
