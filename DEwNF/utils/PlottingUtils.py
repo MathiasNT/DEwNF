@@ -59,6 +59,29 @@ def sliding_plot_loss(train_loss_arr, test_loss_arr, window_size):
     plt.show()
 
 
+def plot_train_results(train_loss_arr, test_loss_arr, no_noise_arr, start_idx=0, end_idx=None):
+    """
+    Makes nice plots of the train and test loss
+    :param train_loss_arr: array
+    :param test_loss_arr: array
+    :param no_noise_arr: array
+    :param start_idx: int
+    :param end_idx: int
+    :return:
+    """
+    if end_idx is None:
+        end_idx = len(train_loss_arr)
+    plt.figure()
+    plt.title("Losses")
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.plot(train_loss_arr[start_idx:end_idx])
+    plt.plot(test_loss_arr[start_idx:end_idx], '--')
+    plt.plot(no_noise_arr[start_idx:end_idx], '--')
+    plt.legend(['Train', 'Test', 'No noise train'])
+    plt.show()
+
+
 def plot_samples(plot_flow_dist, x_plot, scaler, n_samples=256):
     x_s = plot_flow_dist.sample((n_samples,))
     if x_s.is_cuda:
