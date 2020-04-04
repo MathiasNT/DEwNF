@@ -10,8 +10,8 @@ from .ConditionalAffineCoupling2 import conditional_affine_coupling2
 class ConditionalNormalizingFlowWrapper2(object):
     def __init__(self, transforms, flow, base_dist, condinet):
         self.dist = dist.ConditionalTransformedDistribution(base_dist, flow)
-        self.modules = nn.ModuleList(transforms)
         self.condinet = condinet
+        self.modules = nn.ModuleList(transforms).append(self.condinet)
 
     def condition(self, context):
         rich_context = self.condinet(context)
