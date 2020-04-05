@@ -118,7 +118,10 @@ def main(args):
     test_losses = []
     no_noise_losses = []
 
+
     for epoch in range(1, epochs + 1):
+
+        print(epoch)
 
         normalizing_flow.modules.train()
         train_epoch_loss = 0

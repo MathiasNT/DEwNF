@@ -5,7 +5,7 @@ EXPERIMENT_NAME=Test
 RESULTS_FOLDER=.
 DATA_FOLDER=../data/created_data_sets
 DATA_FILE=CoordinateSearchlog2.csv
-CUDA_EXP=true
+CUDA_EXP=false
 
 # Data headers
 OBS_COLS="user_location_latitude user_location_longitude"
@@ -27,7 +27,7 @@ CONTEXT_N_DEPTH=5
 CONTEXT_N_H_DIM=24
 RICH_CONTEXT_DIM=6
 
-python3 test_script.py --experiment_name $EXPERIMENT_NAME --results_folder $RESULTS_FOLDER --data_folder $DATA_FOLDER --data_file $DATA_FILE --cuda_exp $CUDA_EXP\
+python3 test2.py --experiment_name $EXPERIMENT_NAME --results_folder $RESULTS_FOLDER --data_folder $DATA_FOLDER --data_file $DATA_FILE --cuda_exp $CUDA_EXP\
                        --obs_cols $OBS_COLS --context_cols $CONTEXT_COLS \
                        --noise_reg_scheduler $NOISE_REG_SCHEDULER --noise_reg_sigma $NOISE_REG_SIGMA\
                        --epochs $EPOCHS --batch_size $BATCH_SIZE \
