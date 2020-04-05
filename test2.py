@@ -123,7 +123,7 @@ def main(args):
         normalizing_flow.modules.train()
         train_epoch_loss = 0
         for k, batch in enumerate(train_dataloader):
-            print(batch)
+            something = batch
 
         # save every 10 epoch to log and eval
         if epoch % 10 == 0 or epoch == epochs - 1:
@@ -132,11 +132,11 @@ def main(args):
 
             no_noise_epoch_loss = 0
             for k, batch in enumerate(train_dataloader):
-                print(batch)
+                something = batch
 
             test_epoch_loss = 0
             for j, batch in enumerate(test_dataloader):
-                print(batch)
+                something = batch
 
     print("finished")
 
