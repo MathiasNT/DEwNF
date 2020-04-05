@@ -9,6 +9,7 @@ from DEwNF.samplers import RotatingTwoMoonsConditionalSampler
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, approx_rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 
 import torch.optim as optim
+from time import time
 
 
 def main(args):
@@ -187,9 +188,6 @@ def main(args):
     with open(file_path, 'wb') as f:
         saved_flow = pickle.dump(results_dict, f)
 
-    print("finished")
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Folder args
@@ -221,4 +219,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    start = time()
     main(args)
+    end = time()
+    print(f"finished elapsed time: {end-start}")
+
