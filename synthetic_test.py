@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 from DEwNF.flows import ConditionalAffineCoupling2, ConditionedAffineCoupling2, ConditionalNormalizingFlowWrapper, conditional_affine_coupling2, normalizing_flow_factory, conditional_normalizing_flow_factory2
-from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, split_on_days
+from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, split_on_days, split_synthetic
 from DEwNF.samplers import RotatingTwoMoonsConditionalSampler
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, approx_rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 
@@ -37,9 +37,10 @@ def main(args):
 
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
-    # Data settings
+    # Data settings todo
     obs_cols = args.obs_cols
     context_cols = args.context_cols
+    data_size = args.data_size
 
     # Training settings
     epochs = args.epochs
@@ -64,6 +65,7 @@ def main(args):
         "batch_size": batch_size,
         "problem_dim": problem_dim,
         "context_dim": context_dim,
+        "data_size": data_size,
         "flow_depth": flow_depth,
         "c_net_depth": c_net_depth,
         "c_net_h_dim": c_net_h_dim,
@@ -76,11 +78,11 @@ def main(args):
 
     print(f"Settings:\n{settings_dict}")
 
-    # Load data
+    # Load data todo
     csv_path = os.path.join(data_folder, data_file)
-    donkey_df = pd.read_csv(csv_path, parse_dates=[4, 11])
+    two_moons_df = pd.read_csv(csv_path)
 
-    train_dataloader, test_dataloader = split_on_days(donkey_df, obs_cols, context_cols, batch_size, cuda_exp)
+    train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size, data_size, cuda_exp)
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)
@@ -190,6 +192,7 @@ def main(args):
     with open(file_path, 'wb') as f:
         saved_flow = pickle.dump(results_dict, f)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Folder args
@@ -206,6 +209,7 @@ if __name__ == "__main__":
     # Data args
     parser.add_argument("--obs_cols", nargs="+", help="The column names for the observation data")
     parser.add_argument("--context_cols", nargs="+", help="The headers for the context data")
+    parser.add_argument("--data_size", help="how much data observations to use")
 
     # Training args
     parser.add_argument("--epochs", type=int, help="number of epochs")

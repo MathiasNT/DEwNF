@@ -37,3 +37,23 @@ def split_on_days(df, obs_cols, context_cols, batch_size, cuda_exp):
     test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
 
     return train_dataloader, test_dataloader
+
+
+def split_synthetic(df, batch_size, data_size, cuda_exp):
+    # Take subset of data
+    df = df[:data_size]
+
+    # Normalize data and send to cuda
+    obs_scaler = StandardScaler().fit(df.iloc[:, 0:2])
+    context_scaler = StandardScaler().fit(df.iloc[:, 2:4])
+    scaled_obs = obs_scaler.transform(df.iloc[:, 0:2])
+    scaled_context = context_scaler.transform(df.iloc[:, 2:4])
+    scaled_data = torch.cat((torch.tensor(scaled_obs), torch.tensor(scaled_context)), dim=1).type(torch.FloatTensor)
+    data_tensors = scaled_data
+
+    # Split into test and train and put in DataLoader
+    data_len = data_tensors.shape[0]
+    data_split_id = int(data_len * 0.8)
+    train_dataloader = DataLoader(data_tensors[:data_split_id], batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(data_tensors[data_split_id:], batch_size=batch_size)
+    return train_dataloader, test_dataloader
