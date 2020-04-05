@@ -118,28 +118,25 @@ def main(args):
     test_losses = []
     no_noise_losses = []
 
-
     for epoch in range(1, epochs + 1):
-
         print(epoch)
 
         normalizing_flow.modules.train()
         train_epoch_loss = 0
         for k, batch in enumerate(train_dataloader):
-            something = batch
+            print(k)
 
         # save every 10 epoch to log and eval
         if epoch % 10 == 0 or epoch == epochs - 1:
             normalizing_flow.modules.eval()
-            train_losses.append(train_epoch_loss / n_train)
 
             no_noise_epoch_loss = 0
             for k, batch in enumerate(train_dataloader):
-                something = batch
+                print(k)
 
             test_epoch_loss = 0
             for j, batch in enumerate(test_dataloader):
-                something = batch
+                print(j)
 
     print("finished")
 
