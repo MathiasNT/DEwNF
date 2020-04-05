@@ -140,7 +140,6 @@ def main(args):
             optimizer.step()
             train_epoch_loss += loss.item()
         full_train_losses.append(train_epoch_loss / n_train)
-        print(f" Epoch {epoch} Train loss: {full_train_losses[-1]}")
 
         # save every 10 epoch to log and eval
         if epoch % 10 == 0 or epoch == epochs - 1:
@@ -173,7 +172,10 @@ def main(args):
                 test_epoch_loss += test_loss.item()
             test_losses.append(test_epoch_loss / n_test)
 
-        # Plot Epoch resultsif epoch == epochs-1:
+        if epoch%100 == 0:
+            print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
+
+        # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
             normalizing_flow.modules.eval()
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
