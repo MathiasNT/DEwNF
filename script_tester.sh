@@ -5,7 +5,7 @@ EXPERIMENT_NAME=Test
 RESULTS_FOLDER=.
 DATA_FOLDER=../data/created_data_sets
 DATA_FILE=CoordinateSearchlog2.csv
-CUDA_EXP=false
+CUDA_EXP=true
 
 # Data headers
 OBS_COLS="user_location_latitude user_location_longitude"
@@ -17,7 +17,7 @@ NOISE_REG_SIGMA=0.1
 
 # Training settings
 EPOCHS=10
-BATCH_SIZE=10
+BATCH_SIZE=50000
 
 # Flow settings
 FLOW_DEPTH=24
