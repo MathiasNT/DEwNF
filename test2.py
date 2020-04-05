@@ -42,7 +42,7 @@ def main(args):
 
     # Training settings
     epochs = args.epochs
-    batch_size = args.epochs
+    batch_size = args.batch_size
 
     # Dimensions of problem
     problem_dim = len(args.obs_cols)
