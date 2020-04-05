@@ -2,7 +2,6 @@ import argparse
 import pickle
 import os
 import pandas as pd
-from tqdm import tqdm
 
 from DEwNF.flows import ConditionalAffineCoupling2, ConditionedAffineCoupling2, ConditionalNormalizingFlowWrapper, conditional_affine_coupling2, normalizing_flow_factory, conditional_normalizing_flow_factory2
 from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, split_on_days
@@ -119,7 +118,7 @@ def main(args):
     test_losses = []
     no_noise_losses = []
 
-    for epoch in tqdm(range(1, epochs + 1)):
+    for epoch in range(1, epochs + 1):
 
         normalizing_flow.modules.train()
         train_epoch_loss = 0
