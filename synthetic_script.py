@@ -37,6 +37,9 @@ def main(args):
 
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
+    context_dropout = args.context_dropout
+    coupling_dropout = args.coupling_dropout
+
     # Data settings
     data_size = args.data_size
 
@@ -68,6 +71,8 @@ def main(args):
         "context_n_depth": context_n_depth,
         "context_n_h_dim": context_n_h_dim,
         "rich_context_dim": rich_context_dim,
+        "context_dropout": context_dropout,
+        "coupling_dropout": coupling_dropout
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -92,7 +97,9 @@ def main(args):
                                                              context_n_h_dim=context_n_h_dim,
                                                              context_n_depth=context_n_depth,
                                                              rich_context_dim=rich_context_dim,
-                                                             cuda=cuda_exp)
+                                                             cuda=cuda_exp,
+                                                             coupling_dropout=coupling_dropout,
+                                                             context_dropout=context_dropout)
 
     # Setup Optimizer
     optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
@@ -209,6 +216,8 @@ if __name__ == "__main__":
     # Training args
     parser.add_argument("--epochs", type=int, help="number of epochs")
     parser.add_argument("--batch_size", type=int, help="batch size for training")
+    parser.add_argument("--context_dropout", type=float, help="Dropout for the context NN")
+    parser.add_argument("--coupling_dropout", type=float, help="drout for the coupling conditioner nn")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
