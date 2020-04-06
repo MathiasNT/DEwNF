@@ -8,6 +8,8 @@ from torch.distributions import constraints
 from pyro.distributions.transforms.utils import clamp_preserve_gradients
 from pyro.nn import DenseNN
 
+from ..nns import DropoutDenseNN
+
 
 class ConditionedAffineCoupling2(TransformModule):
 
@@ -98,7 +100,7 @@ class ConditionalAffineCoupling2(ConditionalTransformModule):
 
 
 def conditional_affine_coupling2(input_dim, context_dim, hidden_dims=None, split_dim=None,
-                                 rich_context_dim=None, **kwargs):
+                                 rich_context_dim=None, dropout=None, **kwargs):
     if split_dim is None:
         split_dim = input_dim // 2
     if hidden_dims is None:
@@ -107,6 +109,11 @@ def conditional_affine_coupling2(input_dim, context_dim, hidden_dims=None, split
     if rich_context_dim is None:
         rich_context_dim = 5 * context_dim
 
-    hypernet = DenseNN(split_dim + rich_context_dim, hidden_dims, [input_dim - split_dim, input_dim - split_dim])
-
+    if dropout is None:
+        hypernet = DenseNN(split_dim + rich_context_dim, hidden_dims, [input_dim - split_dim, input_dim - split_dim])
+    else:
+        hypernet = DropoutDenseNN(input_dim=split_dim + rich_context_dim,
+                                  hidden_dims=hidden_dims,
+                                  dropout=dropout,
+                                  param_dims=[input_dim - split_dim, input_dim - split_dim])
     return ConditionalAffineCoupling2(split_dim, hypernet)

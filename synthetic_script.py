@@ -37,7 +37,7 @@ def main(args):
 
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
-    # Data settings todo
+    # Data settings
     data_size = args.data_size
 
     # Training settings
@@ -72,7 +72,7 @@ def main(args):
 
     print(f"Settings:\n{settings_dict}")
 
-    # Load data todo
+    # Load data
     csv_path = os.path.join(data_folder, data_file)
     two_moons_df = pd.read_csv(csv_path)
     train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size, data_size, cuda_exp)

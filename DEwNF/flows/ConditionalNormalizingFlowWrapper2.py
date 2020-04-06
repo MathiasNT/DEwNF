@@ -5,6 +5,7 @@ from torch import nn
 import torch
 from pyro.distributions.transforms import permute
 from .ConditionalAffineCoupling2 import conditional_affine_coupling2
+from ..nns import DropoutDenseNN
 
 
 class ConditionalNormalizingFlowWrapper2(object):
@@ -23,7 +24,8 @@ class ConditionalNormalizingFlowWrapper2(object):
 
 
 def conditional_normalizing_flow_factory2(flow_depth, problem_dim, c_net_depth, c_net_h_dim, context_dim,
-                                          context_n_h_dim, context_n_depth, rich_context_dim, cuda):
+                                          context_n_h_dim, context_n_depth, rich_context_dim, cuda,
+                                          coupling_dropout=None, context_dropout=None):
     # We define the base distribution
     if cuda:
         base_dist = dist.Normal(torch.zeros(problem_dim).cuda(), torch.ones(problem_dim).cuda())
@@ -31,10 +33,12 @@ def conditional_normalizing_flow_factory2(flow_depth, problem_dim, c_net_depth, 
         base_dist = dist.Normal(torch.zeros(problem_dim), torch.ones(problem_dim))
 
     # We define the transformations
-    transforms = [conditional_affine_coupling2(problem_dim,
-                                               context_dim,
+    transforms = [conditional_affine_coupling2(input_dim=problem_dim,
+                                               context_dim=context_dim,
                                                hidden_dims=[c_net_h_dim for i in range(c_net_depth)], # Note array here to create multiple layers in DenseNN
-                                               rich_context_dim=rich_context_dim) for i in range(flow_depth)]
+                                               rich_context_dim=rich_context_dim,
+                                               dropout=coupling_dropout)
+                  for i in range(flow_depth)]
 
 
     # need a fix for this
@@ -45,8 +49,11 @@ def conditional_normalizing_flow_factory2(flow_depth, problem_dim, c_net_depth, 
 
     # We define the conditioning network
     context_hidden_dims = [context_n_h_dim for i in range(context_n_depth)]
-    condinet = DenseNN(context_dim, context_hidden_dims, [rich_context_dim])
-
+    if context_dropout is None:
+        condinet = DenseNN(input_dim=context_dim, hidden_dims=context_hidden_dims, param_dims=[rich_context_dim])
+    else:
+        condinet = DropoutDenseNN(input_dim=context_dim, hidden_dims=context_hidden_dims, param_dims=[rich_context_dim],
+                                  dropout=context_dropout)
     # We define the normalizing flow wrapper
     normalizing_flow = ConditionalNormalizingFlowWrapper2(transforms, flows, base_dist, condinet)
     if cuda:
