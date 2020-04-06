@@ -53,13 +53,13 @@ def split_synthetic(df, batch_size, data_size, cuda_exp):
     context_scaler = StandardScaler().fit(train_df.iloc[:, 2:])
 
     # Transform training data
-    scaled_train_obs = obs_scaler.transform(train_df.loc[:, 0:2])
-    scaled_train_context = context_scaler.transform(train_df.loc[:, 2:])
+    scaled_train_obs = obs_scaler.transform(train_df.iloc[:, 0:2])
+    scaled_train_context = context_scaler.transform(train_df.iloc[:, 2:])
     scaled_train_data = torch.cat((torch.tensor(scaled_train_obs), torch.tensor(scaled_train_context)), dim=1).type(torch.FloatTensor)
 
     # Transform test data
-    scaled_test_obs = obs_scaler.transform(test_df.loc[:, 0:2])
-    scaled_test_context = context_scaler.transform(test_df.loc[:, 2:])
+    scaled_test_obs = obs_scaler.transform(test_df.iloc[:, 0:2])
+    scaled_test_context = context_scaler.transform(test_df.iloc[:, 2:])
     scaled_test_data = torch.cat((torch.tensor(scaled_test_obs), torch.tensor(scaled_test_context)), dim=1).type(torch.FloatTensor)
 
     # Send to cuda if necessary
