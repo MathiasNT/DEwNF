@@ -77,7 +77,7 @@ def main(args):
     two_moons_df = pd.read_csv(csv_path)
     train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size, data_size, cuda_exp)
 
-    context_dim = len(two_moons_df.cols) - 2
+    context_dim = len(two_moons_df.columns) - 2
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)
