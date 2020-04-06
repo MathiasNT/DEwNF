@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # Data args
     parser.add_argument("--obs_cols", nargs="+", help="The column names for the observation data")
     parser.add_argument("--context_cols", nargs="+", help="The headers for the context data")
-    parser.add_argument("--data_size", help="how much data observations to use")
+    parser.add_argument("--data_size", type=int, help="how much data observations to use")
 
     # Training args
     parser.add_argument("--epochs", type=int, help="number of epochs")
