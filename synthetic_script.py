@@ -38,8 +38,6 @@ def main(args):
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
     # Data settings todo
-    obs_cols = args.obs_cols
-    context_cols = args.context_cols
     data_size = args.data_size
 
     # Training settings
@@ -47,8 +45,7 @@ def main(args):
     batch_size = args.batch_size
 
     # Dimensions of problem
-    problem_dim = len(args.obs_cols)
-    context_dim = len(args.context_cols)
+    problem_dim = 2
 
     # Flow settings
     flow_depth = args.flow_depth
@@ -64,7 +61,6 @@ def main(args):
         "epochs": epochs,
         "batch_size": batch_size,
         "problem_dim": problem_dim,
-        "context_dim": context_dim,
         "data_size": data_size,
         "flow_depth": flow_depth,
         "c_net_depth": c_net_depth,
@@ -72,8 +68,6 @@ def main(args):
         "context_n_depth": context_n_depth,
         "context_n_h_dim": context_n_h_dim,
         "rich_context_dim": rich_context_dim,
-        "obs_cols": obs_cols,
-        "context_cols": context_cols
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -81,8 +75,9 @@ def main(args):
     # Load data todo
     csv_path = os.path.join(data_folder, data_file)
     two_moons_df = pd.read_csv(csv_path)
-
     train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size, data_size, cuda_exp)
+
+    context_dim = len(two_moons_df.cols) - 2
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)
