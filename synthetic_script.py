@@ -39,6 +39,7 @@ def main(args):
 
     context_dropout = args.context_dropout
     coupling_dropout = args.coupling_dropout
+    l2_reg = args.l2_reg
 
     # Data settings
     data_size = args.data_size
@@ -72,7 +73,8 @@ def main(args):
         "context_n_h_dim": context_n_h_dim,
         "rich_context_dim": rich_context_dim,
         "context_dropout": context_dropout,
-        "coupling_dropout": coupling_dropout
+        "coupling_dropout": coupling_dropout,
+        "l2_reg": l2_reg
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -101,8 +103,12 @@ def main(args):
                                                              coupling_dropout=coupling_dropout,
                                                              context_dropout=context_dropout)
 
+
     # Setup Optimizer
-    optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+    if l2_reg is None:
+        optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+    else:
+        optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
     print("number of params: ", sum(p.numel() for p in normalizing_flow.modules.parameters()))
 
     # Setup regularization
@@ -218,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, help="batch size for training")
     parser.add_argument("--context_dropout", type=float, help="Dropout for the context NN")
     parser.add_argument("--coupling_dropout", type=float, help="drout for the coupling conditioner nn")
+    parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
