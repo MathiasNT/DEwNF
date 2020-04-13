@@ -1,6 +1,7 @@
 #!/bin/bash
 
-for NUM in 1 2 3 4 5 6 7 8 9 10; do
-  NAME=this$NUM
-  echo $NAME
-done
+TEST1=test1
+TEST2=test2
+NAME=$TEST1\og$TEST2\_detvirker
+
+echo $NAME

@@ -80,7 +80,7 @@ def main(args):
     csv_path = os.path.join(data_folder, data_file)
     donkey_df = pd.read_csv(csv_path, parse_dates=[4, 11])
 
-    train_dataloader, test_dataloader = split_on_days(donkey_df, obs_cols, context_cols, batch_size, cuda_exp)
+    train_dataloader, test_dataloader, _, _ = split_on_days(donkey_df, obs_cols, context_cols, batch_size, cuda_exp)
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)
