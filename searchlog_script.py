@@ -3,11 +3,9 @@ import pickle
 import os
 import pandas as pd
 
-from DEwNF.flows import ConditionalAffineCoupling2, ConditionedAffineCoupling2, ConditionalNormalizingFlowWrapper, conditional_affine_coupling2, normalizing_flow_factory, conditional_normalizing_flow_factory2
-from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, searchlog_day_split
-from DEwNF.samplers import RotatingTwoMoonsConditionalSampler
-from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, approx_rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
-
+from DEwNF.flows import conditional_normalizing_flow_factory2
+from DEwNF.utils import searchlog_day_split, get_split_idx_on_day
+from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 import torch.optim as optim
 from time import time
 
@@ -81,6 +79,12 @@ def main(args):
     donkey_df = pd.read_csv(csv_path, parse_dates=[4, 11])
 
     train_dataloader, test_dataloader, _, _ = searchlog_day_split(donkey_df, obs_cols, context_cols, batch_size, cuda_exp)
+    train_idx, test_idx = get_split_idx_on_day(donkey_df)
+
+    run_idxs = {
+        'train': train_idx,
+        'test': test_idx
+    }
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)
@@ -181,7 +185,7 @@ def main(args):
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
 
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict, 'data_split': run_idxs}
 
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
