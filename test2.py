@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 from DEwNF.flows import ConditionalAffineCoupling2, ConditionedAffineCoupling2, ConditionalNormalizingFlowWrapper, conditional_affine_coupling2, normalizing_flow_factory, conditional_normalizing_flow_factory2
-from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, split_on_days
+from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, searchlog_day_split
 from DEwNF.samplers import RotatingTwoMoonsConditionalSampler
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, approx_rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 
@@ -79,7 +79,7 @@ def main(args):
     csv_path = os.path.join(data_folder, data_file)
     donkey_df = pd.read_csv(csv_path, parse_dates=[4, 11])
 
-    train_dataloader, test_dataloader = split_on_days(donkey_df, obs_cols, context_cols, batch_size, cuda_exp)
+    train_dataloader, test_dataloader = searchlog_day_split(donkey_df, obs_cols, context_cols, batch_size, cuda_exp)
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)

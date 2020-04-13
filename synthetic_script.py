@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 from DEwNF.flows import ConditionalAffineCoupling2, ConditionedAffineCoupling2, ConditionalNormalizingFlowWrapper, conditional_affine_coupling2, normalizing_flow_factory, conditional_normalizing_flow_factory2
-from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, split_on_days, split_synthetic
+from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, searchlog_day_split, split_synthetic
 from DEwNF.samplers import RotatingTwoMoonsConditionalSampler
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, approx_rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 

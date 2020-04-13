@@ -4,7 +4,16 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def split_on_days(df, obs_cols, context_cols, batch_size, cuda_exp):
+def get_split_idx_on_day(df, random_state=42):
+    # Get unique days from df and create a test / train based on split.
+    unique_days = df.obs_day.unique()
+    train_days, test_days = train_test_split(unique_days, test_size=0.2, random_state=random_state)
+    train_idx = df.index[df.obs_day.isin(train_days)]
+    test_idx = df.index[df.obs_day.isin(test_days)]
+    return train_idx, test_idx
+
+
+def searchlog_day_split(df, obs_cols, context_cols, batch_size, cuda_exp):
     # Split data into test and train sets based on the days in the data
     unique_days = df.obs_day.unique()
     train_days, test_days = train_test_split(unique_days, test_size=0.2, random_state=42)
