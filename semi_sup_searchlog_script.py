@@ -269,6 +269,7 @@ if __name__ == "__main__":
     parser.add_argument("--results_folder", help="folder for results")
     parser.add_argument("--data_folder", help="Folder with the data")
     parser.add_argument("--data_file", help="filename for the data")
+    parser.add_argument("--extra_data_file", help="file name for the extra data for semisupervised learning")
     parser.add_argument("--cuda_exp", help="whether to use cuda")
 
     # Regularization args
