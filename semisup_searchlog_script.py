@@ -56,7 +56,7 @@ def main(args):
 
     # Dimensions of problem
     problem_dim = len(args.obs_cols)
-    context_dim = len(args.context_cols)
+    context_dim = len(context_cols)
 
     # Flow settings
     flow_depth = args.flow_depth
