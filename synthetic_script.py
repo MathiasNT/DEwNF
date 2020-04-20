@@ -16,8 +16,6 @@ def main(args):
     # cuda
     cuda_exp = args.cuda_exp == "true"
 
-    print(cuda_exp)
-
     # Notebook experiment settings
     experiment_name = args.experiment_name
     experiment_results_folder = args.results_folder
@@ -81,8 +79,6 @@ def main(args):
         "use_batchnorm": use_batchnorm
     }
 
-    print(f"Settings:\n{settings_dict}")
-
     # Load data
     csv_path = os.path.join(data_folder, data_file)
     two_moons_df = pd.read_csv(csv_path)
@@ -115,13 +111,10 @@ def main(args):
         else:
             optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
     else:
-        print("Using clipped gradients")
         if l2_reg is None:
             optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4)
         else:
             optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
-
-    print("number of params: ", sum(p.numel() for p in normalizing_flow.modules.parameters()))
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
