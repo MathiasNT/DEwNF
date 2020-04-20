@@ -40,8 +40,8 @@ def create_points_df(shape, bounds):
     return point_df, delta_lat, delta_lon
 
 
-def calculate_cap_of_model(shape, bounds, dist, df):
-    prob_df, delta_lat, delta_lon = create_prob_df(shape=shape, bounds=bounds, flow_dist=dist)
+def calculate_cap_of_model(shape, bounds, dist, df, obs_scaler):
+    prob_df, delta_lat, delta_lon = create_prob_df(shape=shape, bounds=bounds, flow_dist=dist, obs_scaler=obs_scaler)
     max_points_arr = []
     max_point_vals_arr = []
     n_covered_arr = []
@@ -127,11 +127,8 @@ def calculate_cap_of_hubs(shape, bounds, logs_df, hubs_df, ranked_hubs_df):
     return max_points_arr, max_point_vals_arr, n_covered_arr, percent_covered_arr
 
 
-def calculate_cap_of_random(shape, bounds, dist, df, n_hubs=None):
-    if n_hubs is None:
-        n_hubs = shape[0] * shape[1]
-
-    prob_df, delta_lat, delta_lon = create_prob_df(shape=shape, bounds=bounds, flow_dist = dist)
+def calculate_cap_of_random(shape, bounds, dist, df, obs_scaler):
+    prob_df, delta_lat, delta_lon = create_prob_df(shape=shape, bounds=bounds, flow_dist = dist, obs_scaler=obs_scaler)
     prob_df = prob_df.sample(frac=1)
 
     max_points_arr = []
