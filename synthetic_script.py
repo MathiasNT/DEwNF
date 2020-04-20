@@ -3,10 +3,9 @@ import pickle
 import os
 import pandas as pd
 
-from DEwNF.flows import ConditionalAffineCoupling2, ConditionedAffineCoupling2, ConditionalNormalizingFlowWrapper, conditional_affine_coupling2, normalizing_flow_factory, conditional_normalizing_flow_factory2
-from DEwNF.utils import plot_4_contexts_cond_flow, plot_loss, sliding_plot_loss, plot_samples, plot_train_results, searchlog_day_split, split_synthetic
-from DEwNF.samplers import RotatingTwoMoonsConditionalSampler
-from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, approx_rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
+from DEwNF.flows import conditional_normalizing_flow_factory3
+from DEwNF.utils import split_synthetic
+from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 
 import torch.optim as optim
 from time import time
@@ -41,7 +40,6 @@ def main(args):
     context_dropout = args.context_dropout
     coupling_dropout = args.coupling_dropout
     l2_reg = args.l2_reg
-    clipped_adam = args.clipped_adam
 
     # Data settings
     data_size = args.data_size
@@ -49,6 +47,7 @@ def main(args):
     # Training settings
     epochs = args.epochs
     batch_size = args.batch_size
+    clipped_adam = args.clipped_adam
 
     # Dimensions of problem
     problem_dim = 2
@@ -57,6 +56,7 @@ def main(args):
     flow_depth = args.flow_depth
     c_net_depth = args.c_net_depth
     c_net_h_dim = args.c_net_h_dim
+    use_batchnorm = args.use_batchnorm
 
     # Define context conditioner
     context_n_depth = args.context_n_depth
@@ -77,7 +77,8 @@ def main(args):
         "context_dropout": context_dropout,
         "coupling_dropout": coupling_dropout,
         "l2_reg": l2_reg,
-        "clipped_adam": clipped_adam
+        "clipped_adam": clipped_adam,
+        "use_batchnorm": use_batchnorm
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -94,7 +95,7 @@ def main(args):
     data_dim = problem_dim + context_dim
 
     # Define normalizing flow
-    normalizing_flow = conditional_normalizing_flow_factory2(flow_depth=flow_depth,
+    normalizing_flow = conditional_normalizing_flow_factory3(flow_depth=flow_depth,
                                                              problem_dim=problem_dim,
                                                              c_net_depth=c_net_depth,
                                                              c_net_h_dim=c_net_h_dim,
@@ -104,7 +105,8 @@ def main(args):
                                                              rich_context_dim=rich_context_dim,
                                                              cuda=cuda_exp,
                                                              coupling_dropout=coupling_dropout,
-                                                             context_dropout=context_dropout)
+                                                             context_dropout=context_dropout,
+                                                             use_batchnorm=use_batchnorm)
 
     # Setup Optimizer
     if clipped_adam is None:
@@ -237,6 +239,7 @@ if __name__ == "__main__":
     parser.add_argument("--context_n_depth", type=int, help="depth of the conditioning network")
     parser.add_argument("--context_n_h_dim", type=int, help="hidden dimension of the context network")
     parser.add_argument("--rich_context_dim", type=int, help="dimension of the generated rich context")
+    parser.add_argument("--use_batchnorm", help="Whether or not to use batch norm. If anything is passed it is used.")
 
     args = parser.parse_args()
 
@@ -244,4 +247,3 @@ if __name__ == "__main__":
     main(args)
     end = time()
     print(f"finished elapsed time: {end-start}")
-
