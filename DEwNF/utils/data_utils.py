@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import pandas as pd
 
+
 def get_split_idx_on_day(df, random_state=42):
     # Get unique days from df and create a test / train based on split.
     unique_days = df.obs_day.unique()
