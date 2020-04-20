@@ -10,6 +10,7 @@ from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, a
 
 import torch.optim as optim
 from time import time
+from pyro.optim.clipped_adam import ClippedAdam
 
 
 def main(args):
@@ -40,6 +41,7 @@ def main(args):
     context_dropout = args.context_dropout
     coupling_dropout = args.coupling_dropout
     l2_reg = args.l2_reg
+    clipped_adam = args.clipped_adam
 
     # Data settings
     data_size = args.data_size
@@ -103,12 +105,19 @@ def main(args):
                                                              coupling_dropout=coupling_dropout,
                                                              context_dropout=context_dropout)
 
-
     # Setup Optimizer
-    if l2_reg is None:
-        optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+    if clipped_adam is None:
+        if l2_reg is None:
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+        else:
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
     else:
-        optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
+        print("Using clipped gradients")
+        if l2_reg is None:
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4)
+        else:
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
+
     print("number of params: ", sum(p.numel() for p in normalizing_flow.modules.parameters()))
 
     # Setup regularization
@@ -225,6 +234,7 @@ if __name__ == "__main__":
     parser.add_argument("--context_dropout", type=float, help="Dropout for the context NN")
     parser.add_argument("--coupling_dropout", type=float, help="drout for the coupling conditioner nn")
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
+    parser.add_argument("--clipped_adam", help="whether to use gradient clipping in the optimizer")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
