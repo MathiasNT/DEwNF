@@ -76,7 +76,8 @@ def main(args):
         "rich_context_dim": rich_context_dim,
         "context_dropout": context_dropout,
         "coupling_dropout": coupling_dropout,
-        "l2_reg": l2_reg
+        "l2_reg": l2_reg,
+        "clipped_adam": clipped_adam
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -123,14 +124,10 @@ def main(args):
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
     noise_reg = NoiseRegularizer(discrete_dims=None, h=h, cuda=cuda_exp)
-    print(f"Data size: {train_dataloader.dataset.shape}")
-    print(f"Noise scale: {h}")
 
     # Train and test sizes
     n_train = train_dataloader.dataset.shape[0]
     n_test = test_dataloader.dataset.shape[0]
-    print(f"n_train {n_train}")
-    print(f"n_test {n_test}")
 
     # Training loop
     full_train_losses = []
@@ -190,9 +187,6 @@ def main(args):
 
                 test_epoch_loss += test_loss.item()
             test_losses.append(test_epoch_loss / n_test)
-
-        if epoch%100 == 0:
-            print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:

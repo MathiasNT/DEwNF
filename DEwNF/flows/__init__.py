@@ -3,7 +3,7 @@ from .ConditionalNormalizingFlowWrapper import ConditionalNormalizingFlowWrapper
 from .NormalizingFlowWrapper import NormalizingFlowWrapper, normalizing_flow_factory
 from .ConditionalAffineCoupling2 import ConditionalAffineCoupling2, ConditionedAffineCoupling2, conditional_affine_coupling2
 from .ConditionalNormalizingFlowWrapper2 import ConditionalNormalizingFlowWrapper2, conditional_normalizing_flow_factory2
-
+from .ConditionalNormalizingFlowWrapper3 import ConditionalNormalizingFlowWrapper3, conditional_normalizing_flow_factory3
 __all__ = [
     'conditional_affine_coupling',
     'ConditionedAffineCoupling',
@@ -16,5 +16,7 @@ __all__ = [
     'conditional_normalizing_flow_factory2',
     'conditional_affine_coupling2',
     'ConditionedAffineCoupling2',
-    'ConditionalAffineCoupling2'
+    'ConditionalAffineCoupling2',
+    'ConditionalNormalizingFlowWrapper3',
+    'conditional_normalizing_flow_factory3'
 ]
