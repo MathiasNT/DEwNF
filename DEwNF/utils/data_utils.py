@@ -139,3 +139,41 @@ def split_synthetic(df, batch_size, data_size, cuda_exp, random_state=None):
     test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
 
     return train_dataloader, test_dataloader
+
+
+def searchlog_unconditional_day_split(sup_df, unsup_df, obs_cols, batch_size, cuda_exp):
+    # Split data into test and train sets based on the days in the data
+    unique_days = sup_df.obs_day.unique()
+    train_days, test_days = train_test_split(unique_days, test_size=0.2, random_state=42)
+    train_idx = sup_df.index[sup_df.obs_day.isin(train_days)]
+    test_idx = sup_df.index[sup_df.obs_day.isin(test_days)]
+    sup_df = sup_df.drop('obs_day', axis=1)
+
+    # Normalize semisup-data and send to cuda
+    # Concat the unsupervised obs and context to the train data
+    semisup_obs = pd.concat([sup_df.loc[train_idx, obs_cols], unsup_df.loc[:, obs_cols]])
+
+    # Fit transformation of the observations and semisupervised context
+    obs_scaler = StandardScaler().fit(semisup_obs)
+
+    # Transform training data
+    scaled_train_obs = obs_scaler.transform(sup_df.loc[train_idx, obs_cols])
+
+    # Transform "extra" data
+    scaled_extra_obs = obs_scaler.transform(unsup_df.loc[:, obs_cols])
+
+    # concatenate the train and extra data
+    scaled_train_data = torch.cat((torch.tensor(scaled_train_obs), torch.tensor(scaled_extra_obs)))
+
+    # Transform test data
+    scaled_test_data = torch.tensor(obs_scaler.transform(sup_df.loc[test_idx, obs_cols]))
+
+    if cuda_exp:
+        scaled_train_data = scaled_train_data.cuda()
+        scaled_test_data = scaled_test_data.cuda()
+
+    # Wrap in dataloaders to take care of batching
+    train_dataloader = DataLoader(scaled_train_data, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
+
+    return train_dataloader, test_dataloader, obs_scaler

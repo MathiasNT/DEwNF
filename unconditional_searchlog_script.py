@@ -2,13 +2,16 @@ import argparse
 import pickle
 import os
 import pandas as pd
+import numpy as np
+import itertools
+import torch
 
-from DEwNF.flows import conditional_normalizing_flow_factory3
-from DEwNF.utils import split_synthetic
+from DEwNF.flows import normalizing_flow_factory
+from DEwNF.utils import searchlog_unconditional_day_split
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
-
 import torch.optim as optim
 from time import time
+
 from pyro.optim.clipped_adam import ClippedAdam
 
 
@@ -22,6 +25,7 @@ def main(args):
     results_path = os.path.join("../", experiment_results_folder)
     data_folder = args.data_folder
     data_file = args.data_file
+    extra_data_file = args.extra_data_file
 
     # Regularization settings
     if args.noise_reg_scheduler == "constant":
@@ -35,12 +39,10 @@ def main(args):
 
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
-    context_dropout = args.context_dropout
-    coupling_dropout = args.coupling_dropout
     l2_reg = args.l2_reg
 
     # Data settings
-    data_size = args.data_size
+    obs_cols = args.obs_cols
 
     # Training settings
     epochs = args.epochs
@@ -48,7 +50,7 @@ def main(args):
     clipped_adam = args.clipped_adam
 
     # Dimensions of problem
-    problem_dim = 2
+    problem_dim = len(args.obs_cols)
 
     # Flow settings
     flow_depth = args.flow_depth
@@ -56,54 +58,44 @@ def main(args):
     c_net_h_dim = args.c_net_h_dim
     use_batchnorm = args.use_batchnorm
 
-    # Define context conditioner
-    context_n_depth = args.context_n_depth
-    context_n_h_dim = args.context_n_h_dim
-    rich_context_dim = args.rich_context_dim
-
     settings_dict = {
         "epochs": epochs,
         "batch_size": batch_size,
         "problem_dim": problem_dim,
-        "data_size": data_size,
         "flow_depth": flow_depth,
         "c_net_depth": c_net_depth,
         "c_net_h_dim": c_net_h_dim,
-        "context_n_depth": context_n_depth,
-        "context_n_h_dim": context_n_h_dim,
-        "rich_context_dim": rich_context_dim,
-        "context_dropout": context_dropout,
-        "coupling_dropout": coupling_dropout,
+        "obs_cols": obs_cols,
+        "use_batchnorm": use_batchnorm,
         "l2_reg": l2_reg,
-        "clipped_adam": clipped_adam,
-        "use_batchnorm": use_batchnorm
+        "clipped_adam": clipped_adam
     }
 
+    # Train model
     # Load data
     csv_path = os.path.join(data_folder, data_file)
-    two_moons_df = pd.read_csv(csv_path)
-    train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size,
-                                                        data_size, cuda_exp, random_state=None)
+    donkey_df = pd.read_csv(csv_path, parse_dates=[4, 11])
 
-    context_dim = len(two_moons_df.columns) - 2
+    csv_path = os.path.join(data_folder, extra_data_file)
+    extra_df = pd.read_csv(csv_path, parse_dates=[4, 12])
+
+    train_dataloader, test_dataloader, obs_scaler = searchlog_unconditional_day_split(sup_df=donkey_df,
+                                                                                      unsup_df=extra_df,
+                                                                                      obs_cols=obs_cols,
+                                                                                      batch_size=batch_size,
+                                                                                      cuda_exp=True)
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)
-    data_dim = problem_dim + context_dim
+    data_dim = problem_dim
 
     # Define normalizing flow
-    normalizing_flow = conditional_normalizing_flow_factory3(flow_depth=flow_depth,
-                                                             problem_dim=problem_dim,
-                                                             c_net_depth=c_net_depth,
-                                                             c_net_h_dim=c_net_h_dim,
-                                                             context_dim=context_dim,
-                                                             context_n_h_dim=context_n_h_dim,
-                                                             context_n_depth=context_n_depth,
-                                                             rich_context_dim=rich_context_dim,
-                                                             cuda=cuda_exp,
-                                                             coupling_dropout=coupling_dropout,
-                                                             context_dropout=context_dropout,
-                                                             use_batchnorm=use_batchnorm)
+    normalizing_flow = normalizing_flow_factory(flow_depth=flow_depth,
+                                                problem_dim=problem_dim,
+                                                c_net_depth=c_net_depth,
+                                                c_net_h_dim=c_net_h_dim,
+                                                cuda=cuda_exp,
+                                                use_batchnorm=use_batchnorm)
 
     # Setup Optimizer
     if clipped_adam is None:
@@ -154,6 +146,26 @@ def main(args):
             train_epoch_loss += loss.item()
         full_train_losses.append(train_epoch_loss / n_train)
 
+        # Cheeky unsupervised step that's not really logged
+        for k, batch in enumerate(extra_dataloader):
+            batch = noise_reg.add_noise(batch)
+            x = batch[:, :problem_dim]
+            semisup_context = batch[:, problem_dim:]
+            loss = 0
+            for unscaled_sup_context in possible_contexts:
+                sup_context = sup_context_scaler.transform([unscaled_sup_context])
+                sup_context = torch.tensor(sup_context).float().expand(
+                    (semisup_context.shape[0], len(sup_context[0]))).cuda()
+                context = torch.cat((semisup_context, sup_context), dim=1)
+                conditioned_flow_dist = normalizing_flow.condition(context)
+                loss += -conditioned_flow_dist.log_prob(x).sum()
+
+            # Calculate gradients and take an optimizer step
+            normalizing_flow.modules.zero_grad()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
         # save every 10 epoch to log and eval
         if epoch % 10 == 0 or epoch == epochs - 1:
             normalizing_flow.modules.eval()
@@ -185,13 +197,16 @@ def main(args):
                 test_epoch_loss += test_loss.item()
             test_losses.append(test_epoch_loss / n_test)
 
+        if epoch%100 == 0:
+            print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
+
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
             normalizing_flow.modules.eval()
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
 
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict, 'data_split': run_idxs}
 
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
@@ -208,6 +223,7 @@ if __name__ == "__main__":
     parser.add_argument("--results_folder", help="folder for results")
     parser.add_argument("--data_folder", help="Folder with the data")
     parser.add_argument("--data_file", help="filename for the data")
+    parser.add_argument("--extra_data_file", help="file name for the extra data for semisupervised learning")
     parser.add_argument("--cuda_exp", help="whether to use cuda")
 
     # Regularization args
@@ -216,14 +232,10 @@ if __name__ == "__main__":
 
     # Data args
     parser.add_argument("--obs_cols", nargs="+", help="The column names for the observation data")
-    parser.add_argument("--context_cols", nargs="+", help="The headers for the context data")
-    parser.add_argument("--data_size", type=int, help="how much data observations to use")
 
     # Training args
     parser.add_argument("--epochs", type=int, help="number of epochs")
     parser.add_argument("--batch_size", type=int, help="batch size for training")
-    parser.add_argument("--context_dropout", type=float, help="Dropout for the context NN")
-    parser.add_argument("--coupling_dropout", type=float, help="drout for the coupling conditioner nn")
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
 
@@ -231,9 +243,6 @@ if __name__ == "__main__":
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
     parser.add_argument("--c_net_depth", type=int, help="depth of the conditioner")
     parser.add_argument("--c_net_h_dim", type=int, help="hidden dimension of the conditioner")
-    parser.add_argument("--context_n_depth", type=int, help="depth of the conditioning network")
-    parser.add_argument("--context_n_h_dim", type=int, help="hidden dimension of the context network")
-    parser.add_argument("--rich_context_dim", type=int, help="dimension of the generated rich context")
     parser.add_argument("--use_batchnorm", help="Whether or not to use batch norm. If anything is passed it is used.")
 
     args = parser.parse_args()
@@ -242,3 +251,4 @@ if __name__ == "__main__":
     main(args)
     end = time()
     print(f"finished elapsed time: {end-start}")
+
