@@ -82,7 +82,8 @@ def main(args):
     # Load data
     csv_path = os.path.join(data_folder, data_file)
     two_moons_df = pd.read_csv(csv_path)
-    train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size, data_size, cuda_exp)
+    train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size,
+                                                        data_size, cuda_exp, random_state=None)
 
     context_dim = len(two_moons_df.columns) - 2
 
@@ -112,9 +113,10 @@ def main(args):
             optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
     else:
         if l2_reg is None:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4)
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, clip_norm=clipped_adam)
         else:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg,
+                                    clip_norm=clipped_adam)
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
@@ -223,7 +225,7 @@ if __name__ == "__main__":
     parser.add_argument("--context_dropout", type=float, help="Dropout for the context NN")
     parser.add_argument("--coupling_dropout", type=float, help="drout for the coupling conditioner nn")
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
-    parser.add_argument("--clipped_adam", help="whether to use gradient clipping in the optimizer")
+    parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")

@@ -100,7 +100,13 @@ def searchlog_semisup_day_split(sup_df, unsup_df, obs_cols, semisup_context_cols
     return train_dataloader, test_dataloader, extra_dataloader, obs_scaler, semisup_context_scaler, sup_context_scaler
 
 
-def split_synthetic(df, batch_size, data_size, cuda_exp):
+def split_synthetic(df, batch_size, data_size, cuda_exp, random_state=None):
+    # Random permute the dataframe to get random splits
+    if random_state is None:
+        df = df.sample(frac=1).reset_index(drop=True)
+    else:
+        df = df.sample(frac=1, random_state=random_state).reset_index(drop=True)
+
     # Calculate split id
     split_id = int(data_size * 0.8)
 
