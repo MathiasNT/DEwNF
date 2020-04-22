@@ -33,7 +33,7 @@ def normalizing_flow_factory(flow_depth, problem_dim, c_net_depth, c_net_h_dim, 
 
     # We collect together the different parts of each layer
     if use_batchnorm is True:
-        batchnorms = [batchnorm(input_dim=2) for i in range(flow_depth)]
+        batchnorms = [batchnorm(input_dim=problem_dim) for i in range(flow_depth)]
         flows = list(itertools.chain(*zip(batchnorms, transforms, perms)))[:-1]
     else:
         batchnorms=None

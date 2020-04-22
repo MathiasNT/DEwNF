@@ -132,11 +132,9 @@ def main(args):
             # Add noise reg to two moons
             batch = noise_reg.add_noise(batch)
             x = batch[:, :problem_dim]
-            context = batch[:, problem_dim:]
 
-            # Condition the flow on the sampled covariate and calculate -log_prob = loss
-            conditioned_flow_dist = normalizing_flow.condition(context)
-            loss = -conditioned_flow_dist.log_prob(x).sum()
+            # -log_prob = loss
+            loss = -normalizing_flow.dist.log_prob(x).sum()
 
             # Calculate gradients and take an optimizer step
             normalizing_flow.modules.zero_grad()
@@ -145,26 +143,6 @@ def main(args):
             optimizer.step()
             train_epoch_loss += loss.item()
         full_train_losses.append(train_epoch_loss / n_train)
-
-        # Cheeky unsupervised step that's not really logged
-        for k, batch in enumerate(extra_dataloader):
-            batch = noise_reg.add_noise(batch)
-            x = batch[:, :problem_dim]
-            semisup_context = batch[:, problem_dim:]
-            loss = 0
-            for unscaled_sup_context in possible_contexts:
-                sup_context = sup_context_scaler.transform([unscaled_sup_context])
-                sup_context = torch.tensor(sup_context).float().expand(
-                    (semisup_context.shape[0], len(sup_context[0]))).cuda()
-                context = torch.cat((semisup_context, sup_context), dim=1)
-                conditioned_flow_dist = normalizing_flow.condition(context)
-                loss += -conditioned_flow_dist.log_prob(x).sum()
-
-            # Calculate gradients and take an optimizer step
-            normalizing_flow.modules.zero_grad()
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
 
         # save every 10 epoch to log and eval
         if epoch % 10 == 0 or epoch == epochs - 1:
@@ -175,11 +153,9 @@ def main(args):
             for k, batch in enumerate(train_dataloader):
                 # Add noise reg to two moons
                 x = batch[:, :problem_dim]
-                context = batch[:, problem_dim:]
 
-                # Condition the flow on the sampled covariate and calculate -log_prob = loss
-                conditioned_flow_dist = normalizing_flow.condition(context)
-                loss = -conditioned_flow_dist.log_prob(x).sum()
+                #  -log_prob = loss
+                loss = -normalizing_flow.dist.log_prob(x).sum()
 
                 no_noise_epoch_loss += loss.item()
             no_noise_losses.append(no_noise_epoch_loss / n_train)
@@ -188,17 +164,12 @@ def main(args):
             for j, batch in enumerate(test_dataloader):
                 # Sample covariates and use them to sample from conditioned two_moons
                 x = batch[:, :problem_dim]
-                context = batch[:, problem_dim:]
 
-                # Condition the flow on the sampled covariate and calculate -log_prob = loss
-                conditioned_flow_dist = normalizing_flow.condition(context)
-                test_loss = -conditioned_flow_dist.log_prob(x).sum()
+                # -log_prob = loss
+                test_loss = -normalizing_flow.dist.log_prob(x).sum()
 
                 test_epoch_loss += test_loss.item()
             test_losses.append(test_epoch_loss / n_test)
-
-        if epoch%100 == 0:
-            print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
@@ -206,7 +177,7 @@ def main(args):
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
 
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict, 'data_split': run_idxs}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
 
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
