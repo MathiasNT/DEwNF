@@ -188,16 +188,16 @@ def searchlog_unconditional_day_split_no_scale(sup_df, unsup_df, obs_cols, batch
     sup_df = sup_df.drop('obs_day', axis=1)
 
     # Transform training data
-    train_obs = sup_df.loc[train_idx, obs_cols]
+    train_obs = sup_df.loc[train_idx, obs_cols].values
 
     # Transform "extra" data
-    extra_obs = unsup_df.loc[:, obs_cols]
+    extra_obs = unsup_df.loc[:, obs_cols].values
 
     # concatenate the train and extra data
     train_data = torch.cat((torch.tensor(train_obs), torch.tensor(extra_obs))).float()
 
     # Transform test data
-    test_data = torch.tensor((sup_df.loc[test_idx, obs_cols])).float()
+    test_data = torch.tensor((sup_df.loc[test_idx, obs_cols].values)).float()
 
     if cuda_exp:
         train_data = train_data.cuda()
