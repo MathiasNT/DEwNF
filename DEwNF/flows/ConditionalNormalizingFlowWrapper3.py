@@ -27,7 +27,7 @@ class ConditionalNormalizingFlowWrapper3(object):
 
 
 def conditional_normalizing_flow_factory3(flow_depth, problem_dim, c_net_depth, c_net_h_dim, context_dim,
-                                          context_n_h_dim, context_n_depth, rich_context_dim, use_batchnorm, cuda,
+                                          context_n_h_dim, context_n_depth, rich_context_dim, batchnorm_momentum, cuda,
                                           coupling_dropout=None, context_dropout=None):
     if cuda:
         base_dist = dist.Normal(torch.zeros(problem_dim).cuda(), torch.ones(problem_dim).cuda())
@@ -48,12 +48,12 @@ def conditional_normalizing_flow_factory3(flow_depth, problem_dim, c_net_depth, 
     perms = [permute(input_dim=problem_dim, permutation=torch.tensor([1, 0])) for i in range(flow_depth)]
 
     # If we want batchnorm add those in. Then sandwich the steps together to a flow
-    if use_batchnorm is True:
-        batchnorms = [batchnorm(input_dim=problem_dim) for i in range(flow_depth)]
-        flows = list(itertools.chain(*zip(batchnorms, transforms, perms)))[:-1]
-    else:
-        batchnorms=None
+    if batchnorm_momentum is None:
+        batchnorms = None
         flows = list(itertools.chain(*zip(transforms, perms)))[:-1]
+    else:
+        batchnorms = [batchnorm(input_dim=problem_dim, momentum=batchnorm_momentum) for i in range(flow_depth)]
+        flows = list(itertools.chain(*zip(batchnorms, transforms, perms)))[1:-1]
 
     # We define the conditioning network
     context_hidden_dims = [context_n_h_dim for i in range(context_n_depth)]
