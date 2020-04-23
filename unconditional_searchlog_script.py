@@ -179,6 +179,8 @@ def main(args):
 
     results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
 
+    print(settings_dict)
+
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
 
