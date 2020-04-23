@@ -177,3 +177,35 @@ def searchlog_unconditional_day_split(sup_df, unsup_df, obs_cols, batch_size, cu
     test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
 
     return train_dataloader, test_dataloader, obs_scaler
+
+
+def searchlog_unconditional_day_split_no_scale(sup_df, unsup_df, obs_cols, batch_size, cuda_exp):
+    # Split data into test and train sets based on the days in the data
+    unique_days = sup_df.obs_day.unique()
+    train_days, test_days = train_test_split(unique_days, test_size=0.2, random_state=42)
+    train_idx = sup_df.index[sup_df.obs_day.isin(train_days)]
+    test_idx = sup_df.index[sup_df.obs_day.isin(test_days)]
+    sup_df = sup_df.drop('obs_day', axis=1)
+
+    # Transform training data
+    train_obs = sup_df.loc[train_idx, obs_cols]
+
+    # Transform "extra" data
+    extra_obs = unsup_df.loc[:, obs_cols]
+
+    # concatenate the train and extra data
+    train_data = torch.cat((torch.tensor(train_obs), torch.tensor(extra_obs))).float()
+
+    # Transform test data
+    test_data = torch.tensor((sup_df.loc[test_idx, obs_cols])).float()
+
+    if cuda_exp:
+        train_data = train_data.cuda()
+        test_data = test_data.cuda()
+
+    # Wrap in dataloaders to take care of batching
+    train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_data, batch_size=batch_size)
+
+    return train_dataloader, test_dataloader
+
