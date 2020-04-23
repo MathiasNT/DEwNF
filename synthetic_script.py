@@ -234,7 +234,8 @@ if __name__ == "__main__":
     parser.add_argument("--context_n_depth", type=int, help="depth of the conditioning network")
     parser.add_argument("--context_n_h_dim", type=int, help="hidden dimension of the context network")
     parser.add_argument("--rich_context_dim", type=int, help="dimension of the generated rich context")
-    parser.add_argument("--batchnorm_momentum", help="Momentum of the batchnorm layers. If nothing is passed no batchnorm is used.")
+    parser.add_argument("--batchnorm_momentum", type=float,
+                        help="Momentum of the batchnorm layers. If nothing is passed no batchnorm is used.")
 
     args = parser.parse_args()
 
