@@ -56,7 +56,7 @@ def main(args):
     flow_depth = args.flow_depth
     c_net_depth = args.c_net_depth
     c_net_h_dim = args.c_net_h_dim
-    use_batchnorm = args.use_batchnorm
+    batchnorm_momentum = args.batchnorm_momentum
 
     settings_dict = {
         "epochs": epochs,
@@ -66,7 +66,7 @@ def main(args):
         "c_net_depth": c_net_depth,
         "c_net_h_dim": c_net_h_dim,
         "obs_cols": obs_cols,
-        "use_batchnorm": use_batchnorm,
+        "batchnorm_momentum": batchnorm_momentum,
         "l2_reg": l2_reg,
         "clipped_adam": clipped_adam
     }
@@ -95,7 +95,7 @@ def main(args):
                                                 c_net_depth=c_net_depth,
                                                 c_net_h_dim=c_net_h_dim,
                                                 cuda=cuda_exp,
-                                                use_batchnorm=use_batchnorm)
+                                                batchnorm_momentum=batchnorm_momentum)
 
     # Setup Optimizer
     if clipped_adam is None:
@@ -216,7 +216,8 @@ if __name__ == "__main__":
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
     parser.add_argument("--c_net_depth", type=int, help="depth of the conditioner")
     parser.add_argument("--c_net_h_dim", type=int, help="hidden dimension of the conditioner")
-    parser.add_argument("--use_batchnorm", help="Whether or not to use batch norm. If anything is passed it is used.")
+    parser.add_argument("--batchnorm_momentum", type=float,
+                        help="Momentum of the batchnorm layers. If nothing is passed no batchnorm is used.")
 
     args = parser.parse_args()
 
