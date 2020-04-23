@@ -32,7 +32,7 @@ def normalizing_flow_factory(flow_depth, problem_dim, c_net_depth, c_net_h_dim, 
     perms = [permute(2, torch.tensor([1, 0])) for i in range(flow_depth)]
 
     # We collect together the different parts of each layer
-    if use_batchnorm is True:
+    if use_batchnorm is not None:
         batchnorms = [batchnorm(input_dim=problem_dim) for i in range(flow_depth)]
         flows = list(itertools.chain(*zip(batchnorms, transforms, perms)))[:-1]
     else:
