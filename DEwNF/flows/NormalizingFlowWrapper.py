@@ -37,6 +37,8 @@ def normalizing_flow_factory(flow_depth, problem_dim, c_net_depth, c_net_h_dim, 
         flows = list(itertools.chain(*zip(transforms, perms)))[:-1]
     else:
         batchnorms = [batchnorm(input_dim=problem_dim, momentum=batchnorm_momentum) for i in range(flow_depth)]
+        for bn in batchnorms:
+            bn.gamma.data += torch.ones(problem_dim)
         flows = list(itertools.chain(*zip(batchnorms, transforms, perms)))[1:-1]
 
 
