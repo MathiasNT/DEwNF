@@ -44,7 +44,7 @@ def conditional_normalizing_flow_factory3(flow_depth, problem_dim, c_net_depth, 
 
 
     # Permutes are needed to be able to transform all dimensions.
-    # Note that the transform is fixed here since we only have 2 dimensions.
+    # Note that the transform is fixed here since we only have 2 dimensions. For more dimensions don't fix it and let it be random.
     perms = [permute(input_dim=problem_dim, permutation=torch.tensor([1, 0])) for i in range(flow_depth)]
 
     # If we want batchnorm add those in. Then sandwich the steps together to a flow
