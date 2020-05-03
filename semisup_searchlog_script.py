@@ -6,18 +6,17 @@ import numpy as np
 import itertools
 import torch
 
-from DEwNF.flows import conditional_normalizing_flow_factory2
+from DEwNF.flows import conditional_normalizing_flow_factory3
 from DEwNF.utils import searchlog_day_split, get_split_idx_on_day, searchlog_semisup_day_split
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 import torch.optim as optim
 from time import time
 
+from pyro.optim.clipped_adam import ClippedAdam
 
 def main(args):
     # cuda
     cuda_exp = args.cuda_exp == "true"
-
-    print(cuda_exp)
 
     # Notebook experiment settings
     experiment_name = args.experiment_name
@@ -39,6 +38,8 @@ def main(args):
 
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
+    l2_reg = args.l2_reg
+
     # Data settings
     obs_cols = args.obs_cols
     semisup_context_cols = args.semisup_context_cols
@@ -53,6 +54,8 @@ def main(args):
     # Training settings
     epochs = args.epochs
     batch_size = args.batch_size
+    clipped_adam = args.clipped_adam
+
 
     # Dimensions of problem
     problem_dim = len(args.obs_cols)
@@ -62,6 +65,7 @@ def main(args):
     flow_depth = args.flow_depth
     c_net_depth = args.c_net_depth
     c_net_h_dim = args.c_net_h_dim
+    batchnorm_momentum = args.batchnorm_momentum
 
     # Define context conditioner
     context_n_depth = args.context_n_depth
@@ -82,7 +86,10 @@ def main(args):
         "obs_cols": obs_cols,
         "context_cols": context_cols,
         "semisup_context_cols": semisup_context_cols,
-        "sup_context_context_cols": sup_context_cols
+        "sup_context_context_cols": sup_context_cols,
+        "batchnorm_momentum": batchnorm_momentum,
+        "l2_reg": l2_reg,
+        "clipped_adam": clipped_adam
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -114,7 +121,7 @@ def main(args):
     data_dim = problem_dim + context_dim
 
     # Define normalizing flow
-    normalizing_flow = conditional_normalizing_flow_factory2(flow_depth=flow_depth,
+    normalizing_flow = conditional_normalizing_flow_factory3(flow_depth=flow_depth,
                                                              problem_dim=problem_dim,
                                                              c_net_depth=c_net_depth,
                                                              c_net_h_dim=c_net_h_dim,
@@ -122,23 +129,29 @@ def main(args):
                                                              context_n_h_dim=context_n_h_dim,
                                                              context_n_depth=context_n_depth,
                                                              rich_context_dim=rich_context_dim,
-                                                             cuda=cuda_exp)
+                                                             cuda=cuda_exp,
+                                                             batchnorm_momentum=batchnorm_momentum)
 
     # Setup Optimizer
-    optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
-    print("number of params: ", sum(p.numel() for p in normalizing_flow.modules.parameters()))
+    if clipped_adam is None:
+        if l2_reg is None:
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+        else:
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
+    else:
+        if l2_reg is None:
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, clip_norm=clipped_adam)
+        else:
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg,
+                                    clip_norm=clipped_adam)
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
     noise_reg = NoiseRegularizer(discrete_dims=None, h=h, cuda=cuda_exp)
-    print(f"Data size: {train_dataloader.dataset.shape}")
-    print(f"Noise scale: {h}")
 
     # Train and test sizes
     n_train = train_dataloader.dataset.shape[0]
     n_test = test_dataloader.dataset.shape[0]
-    print(f"n_train {n_train}")
-    print(f"n_test {n_test}")
 
     # Define the possible supervised contexts to marginalize out during unsupervised training
     context_val_dict = {}
@@ -285,6 +298,9 @@ if __name__ == "__main__":
     # Training args
     parser.add_argument("--epochs", type=int, help="number of epochs")
     parser.add_argument("--batch_size", type=int, help="batch size for training")
+    parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
+    parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
+
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
@@ -293,6 +309,8 @@ if __name__ == "__main__":
     parser.add_argument("--context_n_depth", type=int, help="depth of the conditioning network")
     parser.add_argument("--context_n_h_dim", type=int, help="hidden dimension of the context network")
     parser.add_argument("--rich_context_dim", type=int, help="dimension of the generated rich context")
+    parser.add_argument("--batchnorm_momentum", type=float,
+                        help="Momentum of the batchnorm layers. If nothing is passed no batchnorm is used.")
 
     args = parser.parse_args()
 
