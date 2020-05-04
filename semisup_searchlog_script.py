@@ -176,6 +176,7 @@ def main(args):
     context_val_arr = [context_val_dict[col] for col in sup_context_cols if context_val_dict[col] is not None]
     possible_contexts = np.array(list(itertools.product(*context_val_arr)))
     print(len(possible_contexts))
+    print(possible_contexts)
 
     # Training loop
     full_train_losses = []
