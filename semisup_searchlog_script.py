@@ -180,7 +180,7 @@ def main(args):
     for row in temp_contexts:
         cleaned_row = []
         for elem in row:
-            if isinstance(elem, np.array):
+            if isinstance(elem, np.ndarray):
                 for value in elem:
                     cleaned_row.append(value)
             else:
