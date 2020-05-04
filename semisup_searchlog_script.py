@@ -174,7 +174,21 @@ def main(args):
         context_val_dict['rain'] = rain_arr
 
     context_val_arr = [context_val_dict[col] for col in sup_context_cols if context_val_dict[col] is not None]
-    possible_contexts = np.array(list(itertools.product(*context_val_arr)))
+    temp_contexts = np.array(list(itertools.product(*context_val_arr)))
+
+    contexts_arr = []
+    for row in temp_contexts:
+        cleaned_row = []
+        for elem in row:
+            if isinstance(elem, np.array):
+                for value in elem:
+                    cleaned_row.append(value)
+            else:
+                cleaned_row.append(elem)
+        contexts_arr.append(cleaned_row)
+
+    possible_contexts = np.array(contexts_arr)
+
     print(len(possible_contexts))
     print(possible_contexts)
 
