@@ -266,7 +266,7 @@ def simple_data_split_conditional(df, obs_cols, context_cols, batch_size, cuda_e
     scaled_train_data = torch.cat((torch.tensor(scaled_train_obs), torch.tensor(scaled_train_context)), dim=1).type(torch.FloatTensor)
 
     # Transform "extra" data
-    scaled_test_obs = obs_scaler.transform(df.loc[test_idx, obs_cols]).float()
+    scaled_test_obs = obs_scaler.transform(df.loc[test_idx, obs_cols])
     scaled_test_context = context_scaler.transform(df.loc[test_idx, context_cols])
     scaled_test_data = torch.cat((torch.tensor(scaled_test_obs), torch.tensor(scaled_test_context)), dim=1).type(torch.FloatTensor)
 
