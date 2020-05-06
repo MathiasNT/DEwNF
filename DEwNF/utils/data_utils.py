@@ -249,3 +249,33 @@ def simple_data_split(df, obs_cols, batch_size, cuda_exp):
     test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
 
     return train_dataloader, test_dataloader, obs_scaler
+
+
+def simple_data_split_conditional(df, obs_cols, context_cols, batch_size, cuda_exp):
+    # Split data into test and train sets
+    train_idx, test_idx = train_test_split(df.index, test_size=0.2, random_state=42)
+
+    # Normalize data and send to cuda
+    # Fit transformation of the observations
+    obs_scaler = StandardScaler().fit(df.loc[train_idx, obs_cols])
+    context_scaler = StandardScaler().fit(df.loc[train_idx, context_cols])
+
+    # Transform training data
+    scaled_train_obs = obs_scaler.transform(df.loc[train_idx, obs_cols])
+    scaled_train_context = context_scaler.transform(df.loc[train_idx, context_cols])
+    scaled_train_data = torch.cat((torch.tensor(scaled_train_obs), torch.tensor(scaled_train_context)), dim=1).type(torch.FloatTensor)
+
+    # Transform "extra" data
+    scaled_test_obs = obs_scaler.transform(df.loc[test_idx, obs_cols]).float()
+    scaled_test_context = context_scaler.transform(df.loc[test_idx, context_cols])
+    scaled_test_data = torch.cat((torch.tensor(scaled_test_obs), torch.tensor(scaled_test_context)), dim=1).type(torch.FloatTensor)
+
+    if cuda_exp:
+        scaled_train_data = scaled_train_data.cuda()
+        scaled_test_data = scaled_test_data.cuda()
+
+    # Wrap in dataloaders to take care of batching
+    train_dataloader = DataLoader(scaled_train_data, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
+
+    return train_dataloader, test_dataloader, obs_scaler, context_scaler
