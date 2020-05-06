@@ -7,7 +7,7 @@ import itertools
 import torch
 
 from DEwNF.flows import conditional_normalizing_flow_factory3
-from DEwNF.utils import get_split_idx_on_day, simple_data_split_conditional
+from DEwNF.utils import simple_data_split_conditional
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 import torch.optim as optim
 from time import time
@@ -89,13 +89,6 @@ def main(args):
     # Load data
     csv_path = os.path.join(data_folder, data_file)
     df = pd.read_csv(csv_path)
-
-    # Save the test train split. We do use seed but this way we have it.
-    train_idx, test_idx = get_split_idx_on_day(df)
-    run_idxs = {
-        'train': train_idx,
-        'test': test_idx
-    }
 
     train_dataloader, test_dataloader, obs_scaler, context_scaler = simple_data_split_conditional(df=df,
                                                                                                   obs_cols=obs_cols,
