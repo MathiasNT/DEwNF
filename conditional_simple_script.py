@@ -201,7 +201,7 @@ def main(args):
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
 
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict, 'data_split': run_idxs}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
 
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
