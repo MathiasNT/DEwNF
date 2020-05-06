@@ -224,3 +224,28 @@ def searchlog_unconditional_day_split(sup_df, unsup_df, obs_cols, batch_size, cu
     test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
 
     return train_dataloader, test_dataloader, obs_scaler
+
+
+def simple_data_split(df, obs_cols, batch_size, cuda_exp):
+    # Split data into test and train sets
+    train_idx, test_idx = train_test_split(df.index, test_size=0.2, random_state=42)
+
+    # Normalize data and send to cuda
+    # Fit transformation of the observations
+    obs_scaler = StandardScaler().fit(df.loc[train_idx, obs_cols])
+
+    # Transform training data
+    scaled_train_data = torch.tensor(obs_scaler.transform(df.loc[train_idx, obs_cols])).float()
+
+    # Transform "extra" data
+    scaled_test_data = torch.tensor(obs_scaler.transform(df.loc[test_idx, obs_cols])).float()
+
+    if cuda_exp:
+        scaled_train_data = scaled_train_data.cuda()
+        scaled_test_data = scaled_test_data.cuda()
+
+    # Wrap in dataloaders to take care of batching
+    train_dataloader = DataLoader(scaled_train_data, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
+
+    return train_dataloader, test_dataloader, obs_scaler
