@@ -71,7 +71,7 @@ def main(args):
     # Train model
     # Load data
     csv_path = os.path.join(data_folder, data_file)
-    df = pd.read_csv(csv_path, parse_dates=[4, 11])
+    df = pd.read_csv(csv_path)
 
     train_dataloader, test_dataloader, obs_scaler = simple_data_split(df=df,
                                                                       obs_cols=obs_cols,
