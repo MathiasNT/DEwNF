@@ -65,7 +65,9 @@ def main(args):
         "obs_cols": obs_cols,
         "batchnorm_momentum": batchnorm_momentum,
         "l2_reg": l2_reg,
-        "clipped_adam": clipped_adam
+        "clipped_adam": clipped_adam,
+        "noise_reg_scheduler": args.noise_reg_scheduler,
+        "noise_reg_sigma": noise_reg_sigma
     }
 
     # Train model
