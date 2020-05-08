@@ -40,6 +40,8 @@ def main(args):
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
     l2_reg = args.l2_reg
+    initial_lr = args.initial_lr
+    lr_decay = args.lr_decay
 
     # Data settings
     obs_cols = args.obs_cols
@@ -68,7 +70,9 @@ def main(args):
         "obs_cols": obs_cols,
         "batchnorm_momentum": batchnorm_momentum,
         "l2_reg": l2_reg,
-        "clipped_adam": clipped_adam
+        "clipped_adam": clipped_adam,
+        "initial_lr": initial_lr,
+        "lr_decay": lr_decay
     }
 
     # Train model
@@ -100,15 +104,18 @@ def main(args):
     # Setup Optimizer
     if clipped_adam is None:
         if l2_reg is None:
-            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=initial_lr)
         else:
-            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=initial_lr, weight_decay=l2_reg)
     else:
         if l2_reg is None:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, clip_norm=clipped_adam)
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=initial_lr, clip_norm=clipped_adam)
         else:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg,
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=initial_lr, weight_decay=l2_reg,
                                     clip_norm=clipped_adam)
+
+    if lr_decay is not None:
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=lr_decay, last_epoch=-1)
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
@@ -171,6 +178,10 @@ def main(args):
                 test_epoch_loss += test_loss.item()
             test_losses.append(test_epoch_loss / n_test)
 
+        # Take scheduler step if needed
+        if lr_decay is not None:
+            scheduler.step()
+
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
             normalizing_flow.modules.eval()
@@ -211,6 +222,9 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, help="batch size for training")
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
+    parser.add_argument("--initial_lr", type=float, help="The initial learning rate")
+    parser.add_argument("--lr_decay", type=float, help="The factor for the exponential lr decay")
+
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
