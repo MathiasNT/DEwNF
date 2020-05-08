@@ -233,8 +233,7 @@ def main(args):
             normalizing_flow.modules.eval()
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
-    print(initial_lr)
-    print(scheduler.get_lr())
+
     results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict, 'data_split': run_idxs}
 
     file_name = f"{experiment_name}.pickle"
@@ -271,7 +270,6 @@ if __name__ == "__main__":
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
     parser.add_argument("--initial_lr", type=float, help="The initial learning rate")
     parser.add_argument("--lr_decay", type=float, help="The factor for the exponential lr decay")
-
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
