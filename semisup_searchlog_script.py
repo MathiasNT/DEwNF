@@ -281,6 +281,10 @@ def main(args):
         if epoch%100 == 0:
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
 
+        # Take scheduler step if needed
+        if lr_decay is not None:
+            scheduler.step()
+
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
             normalizing_flow.modules.eval()
