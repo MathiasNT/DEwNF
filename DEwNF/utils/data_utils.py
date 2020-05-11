@@ -184,7 +184,7 @@ def searchlog_no_weather_day_split2(sup_df, unsup_df, obs_cols, semisup_context_
     # Send to cuda if necessary
     if cuda_exp:
         scaled_train_data = scaled_train_data.cuda()
-        scaled_extra_data = scaled_extra_data.cuda()
+        scaled_test_data = scaled_test_data.cuda()
 
     # Wrap in dataloaders to take care of batching
     train_dataloader = DataLoader(scaled_train_data, batch_size=batch_size, shuffle=True)
