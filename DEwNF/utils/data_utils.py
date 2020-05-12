@@ -269,7 +269,7 @@ def split_synthetic(df, batch_size, data_size, cuda_exp, random_state=None):
     train_dataloader = DataLoader(scaled_train_data, batch_size=batch_size, shuffle=True)
     test_dataloader = DataLoader(scaled_test_data, batch_size=batch_size)
 
-    return train_dataloader, test_dataloader
+    return train_dataloader, test_dataloader, obs_scaler, context_scaler
 
 
 def simple_data_split(df, obs_cols, batch_size, cuda_exp):
