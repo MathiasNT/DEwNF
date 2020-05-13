@@ -41,9 +41,7 @@ def main(args):
 
     l2_reg = args.l2_reg
     initial_lr = args.initial_lr
-    lr_factor = args.lr_factor
-    lr_patience = args.lr_patience
-    min_lr = args.min_lr
+    lr_decay = args.lr_decay
 
     # Data settings
     obs_cols = args.obs_cols
@@ -74,9 +72,7 @@ def main(args):
         "l2_reg": l2_reg,
         "clipped_adam": clipped_adam,
         "initial_lr": initial_lr,
-        "lr_factor": lr_factor,
-        "lr_patience": lr_patience,
-        "min_lr": min_lr
+        "lr_decay": lr_decay
     }
 
     # Train model
@@ -118,9 +114,8 @@ def main(args):
             optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=initial_lr, weight_decay=l2_reg,
                                     clip_norm=clipped_adam)
 
-    if lr_factor is not None:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=lr_factor, patience=lr_patience,
-                                                         min_lr=min_lr, verbose=True)
+    if lr_decay is not None:
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=lr_decay, last_epoch=-1)
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
@@ -184,8 +179,8 @@ def main(args):
             test_losses.append(test_epoch_loss / n_test)
 
         # Take scheduler step if needed
-        if lr_factor is not None:
-            scheduler.step(test_epoch_loss)
+        if lr_decay is not None:
+            scheduler.step()
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
@@ -228,9 +223,8 @@ if __name__ == "__main__":
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
     parser.add_argument("--initial_lr", type=float, help="The initial learning rate")
-    parser.add_argument("--lr_factor", type=float, help="The factor with which the lr decay scheduler multiplies")
-    parser.add_argument("--lr_patience", type=int, help="Number of epochs with no improvement after which lr is reduced")
-    parser.add_argument("--min_lr", type=float, help="The minimum value the lr can drop to")
+    parser.add_argument("--lr_decay", type=float, help="The factor for the exponential lr decay")
+
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
