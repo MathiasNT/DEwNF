@@ -156,10 +156,21 @@ def main(args):
             train_epoch_loss += loss.item()
         full_train_losses.append(train_epoch_loss / n_train)
 
+        test_epoch_loss = 0
+        for j, batch in enumerate(test_dataloader):
+            # Sample covariates and use them to sample from conditioned two_moons
+            x = batch[:, :problem_dim]
+
+            # -log_prob = loss
+            test_loss = -normalizing_flow.dist.log_prob(x).sum()
+            test_epoch_loss += test_loss.item()
+
         # save every 10 epoch to log and eval
+        normalizing_flow.modules.eval()
         if epoch % 10 == 0 or epoch == epochs - 1:
-            normalizing_flow.modules.eval()
+            # append epoch losses to results arr
             train_losses.append(train_epoch_loss / n_train)
+            test_losses.append(test_epoch_loss / n_test)
 
             no_noise_epoch_loss = 0
             for k, batch in enumerate(train_dataloader):
@@ -172,20 +183,9 @@ def main(args):
                 no_noise_epoch_loss += loss.item()
             no_noise_losses.append(no_noise_epoch_loss / n_train)
 
-            test_epoch_loss = 0
-            for j, batch in enumerate(test_dataloader):
-                # Sample covariates and use them to sample from conditioned two_moons
-                x = batch[:, :problem_dim]
-
-                # -log_prob = loss
-                test_loss = -normalizing_flow.dist.log_prob(x).sum()
-
-                test_epoch_loss += test_loss.item()
-            test_losses.append(test_epoch_loss / n_test)
-
         # Take scheduler step if needed
         if lr_factor is not None:
-            scheduler.step(test_epoch_loss)
+            scheduler.step(test_epoch_loss / n_test)
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
