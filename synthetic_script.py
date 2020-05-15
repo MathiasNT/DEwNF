@@ -84,8 +84,8 @@ def main(args):
     # Load data
     csv_path = os.path.join(data_folder, data_file)
     two_moons_df = pd.read_csv(csv_path)
-    train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size,
-                                                        data_size, cuda_exp, random_state=42)
+    train_dataloader, test_dataloader, obs_scaler, context_scaler = split_synthetic(two_moons_df, batch_size,
+                                                                                    data_size, cuda_exp, random_state=42)
 
     context_dim = len(two_moons_df.columns) - 2
 
@@ -192,8 +192,9 @@ def main(args):
             normalizing_flow.modules.eval()
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
-
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
+    scaler_dict = {'obs':obs_scaler, 'context': context_scaler}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict,
+                    'scalers': scaler_dict}
 
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
