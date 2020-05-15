@@ -40,10 +40,7 @@ def main(args):
 
     l2_reg = args.l2_reg
     initial_lr = args.initial_lr
-    lr_factor = args.lr_factor
-    lr_patience = args.lr_patience
-    min_lr = args.min_lr
-
+    lr_decay = args.lr_decay
 
     # Data settings
     obs_cols = args.obs_cols
@@ -96,9 +93,7 @@ def main(args):
         "l2_reg": l2_reg,
         "clipped_adam": clipped_adam,
         "initial_lr": initial_lr,
-        "lr_factor": lr_factor,
-        "lr_patience": lr_patience,
-        "min_lr": min_lr
+        "lr_decay": lr_decay
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -154,9 +149,8 @@ def main(args):
             optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=initial_lr, weight_decay=l2_reg,
                                     clip_norm=clipped_adam)
 
-    if lr_factor is not None:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=lr_factor, patience=lr_patience,
-                                                         min_lr=min_lr, verbose=True)
+    if lr_decay is not None:
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=lr_decay, last_epoch=-1)
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
@@ -210,7 +204,6 @@ def main(args):
     train_losses = []
     test_losses = []
     no_noise_losses = []
-    lr_scheduler_steps = []
 
     for epoch in range(1, epochs + 1):
 
@@ -254,8 +247,24 @@ def main(args):
             loss.backward()
             optimizer.step()
 
-        normalizing_flow.modules.eval()
-        with torch.no_grad():
+        # save every 10 epoch to log and eval
+        if epoch % 10 == 0 or epoch == epochs - 1:
+            normalizing_flow.modules.eval()
+            train_losses.append(train_epoch_loss / n_train)
+
+            no_noise_epoch_loss = 0
+            for k, batch in enumerate(train_dataloader):
+                # Add noise reg to two moons
+                x = batch[:, :problem_dim]
+                context = batch[:, problem_dim:]
+
+                # Condition the flow on the sampled covariate and calculate -log_prob = loss
+                conditioned_flow_dist = normalizing_flow.condition(context)
+                loss = -conditioned_flow_dist.log_prob(x).sum()
+
+                no_noise_epoch_loss += loss.item()
+            no_noise_losses.append(no_noise_epoch_loss / n_train)
+
             test_epoch_loss = 0
             for j, batch in enumerate(test_dataloader):
                 # Sample covariates and use them to sample from conditioned two_moons
@@ -267,30 +276,14 @@ def main(args):
                 test_loss = -conditioned_flow_dist.log_prob(x).sum()
 
                 test_epoch_loss += test_loss.item()
+            test_losses.append(test_epoch_loss / n_test)
 
-            # save every 10 epoch to log and eval
-            if epoch % 10 == 0 or epoch == epochs - 1:
-                normalizing_flow.modules.eval()
-                train_losses.append(train_epoch_loss / n_train)
-                test_losses.append(test_epoch_loss / n_test)
-
-                no_noise_epoch_loss = 0
-                for k, batch in enumerate(train_dataloader):
-                    # Add noise reg to two moons
-                    x = batch[:, :problem_dim]
-                    context = batch[:, problem_dim:]
-
-                    # Condition the flow on the sampled covariate and calculate -log_prob = loss
-                    conditioned_flow_dist = normalizing_flow.condition(context)
-                    loss = -conditioned_flow_dist.log_prob(x).sum()
-
-                    no_noise_epoch_loss += loss.item()
-                no_noise_losses.append(no_noise_epoch_loss / n_train)
+        if epoch%100 == 0:
+            print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
 
         # Take scheduler step if needed
-        if lr_factor is not None:
-            scheduler.step(test_epoch_loss / n_test)
-            lr_scheduler_steps.append(epoch)
+        if lr_decay is not None:
+            scheduler.step()
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
@@ -298,8 +291,7 @@ def main(args):
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
 
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict,
-                    'data_split': run_idxs, 'lr_steps': lr_scheduler_steps}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict, 'data_split': run_idxs}
 
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
@@ -335,10 +327,7 @@ if __name__ == "__main__":
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
     parser.add_argument("--initial_lr", type=float, help="The initial learning rate")
-    parser.add_argument("--lr_factor", type=float, help="The factor with which the lr decay scheduler multiplies")
-    parser.add_argument("--lr_patience", type=int, help="Number of epochs with no improvement after which lr is reduced")
-    parser.add_argument("--min_lr", type=float, help="The minimum value the lr can drop to")
-
+    parser.add_argument("--lr_decay", type=float, help="The factor for the exponential lr decay")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")

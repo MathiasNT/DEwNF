@@ -2,12 +2,9 @@ import argparse
 import pickle
 import os
 import pandas as pd
-import numpy as np
-import itertools
-import torch
 
 from DEwNF.flows import conditional_normalizing_flow_factory3
-from DEwNF.utils import searchlog_day_split, get_split_idx_on_day, searchlog_semisup_day_split
+from DEwNF.utils import get_split_idx_on_day, searchlog_no_weather_day_split2
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 import torch.optim as optim
 from time import time
@@ -40,27 +37,19 @@ def main(args):
 
     l2_reg = args.l2_reg
     initial_lr = args.initial_lr
-    lr_factor = args.lr_factor
-    lr_patience = args.lr_patience
-    min_lr = args.min_lr
-
+    lr_decay = args.lr_decay
 
     # Data settings
     obs_cols = args.obs_cols
     semisup_context_cols = args.semisup_context_cols
-    sup_context_cols = args.sup_context_cols
 
-    if sup_context_cols is None:
-        context_cols = semisup_context_cols
-    else:
-        context_cols = semisup_context_cols + sup_context_cols
+    context_cols = semisup_context_cols
 
 
     # Training settings
     epochs = args.epochs
     batch_size = args.batch_size
     clipped_adam = args.clipped_adam
-
 
     # Dimensions of problem
     problem_dim = len(args.obs_cols)
@@ -91,14 +80,11 @@ def main(args):
         "obs_cols": obs_cols,
         "context_cols": context_cols,
         "semisup_context_cols": semisup_context_cols,
-        "sup_context_context_cols": sup_context_cols,
         "batchnorm_momentum": batchnorm_momentum,
         "l2_reg": l2_reg,
         "clipped_adam": clipped_adam,
         "initial_lr": initial_lr,
-        "lr_factor": lr_factor,
-        "lr_patience": lr_patience,
-        "min_lr": min_lr
+        "lr_decay": lr_decay
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -117,13 +103,12 @@ def main(args):
         'test': test_idx
     }
 
-    train_dataloader, test_dataloader, extra_dataloader, obs_scaler, semisup_context_scaler, sup_context_scaler = searchlog_semisup_day_split(sup_df=donkey_df,
-                                                                                                                                              unsup_df=extra_df,
-                                                                                                                                              obs_cols=obs_cols,
-                                                                                                                                              semisup_context_cols=semisup_context_cols,
-                                                                                                                                              sup_context_cols=sup_context_cols,
-                                                                                                                                              batch_size=batch_size,
-                                                                                                                                              cuda_exp=True)
+    train_dataloader, test_dataloader, obs_scaler, semisup_context_scaler = searchlog_no_weather_day_split2(sup_df=donkey_df,
+                                                                                                            unsup_df=extra_df,
+                                                                                                            obs_cols=obs_cols,
+                                                                                                            semisup_context_cols=semisup_context_cols,
+                                                                                                            batch_size=batch_size,
+                                                                                                            cuda_exp=True)
 
     # Define stuff for reqularization
     data_size = len(train_dataloader)
@@ -154,9 +139,8 @@ def main(args):
             optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=initial_lr, weight_decay=l2_reg,
                                     clip_norm=clipped_adam)
 
-    if lr_factor is not None:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=lr_factor, patience=lr_patience,
-                                                         min_lr=min_lr, verbose=True)
+    if lr_decay is not None:
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=lr_decay, last_epoch=-1)
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
@@ -166,51 +150,11 @@ def main(args):
     n_train = train_dataloader.dataset.shape[0]
     n_test = test_dataloader.dataset.shape[0]
 
-    # Define the possible supervised contexts to marginalize out during unsupervised training
-    context_val_dict = {}
-
-    if "wind_dir_sin" in sup_context_cols and "wind_dir_cos" in sup_context_cols:
-        wind_dir_arr = np.unique(donkey_df[['wind_dir_sin', 'wind_dir_cos']].values.tolist(), axis=0)
-        context_val_dict['wind_dir_sin'] = wind_dir_arr
-        context_val_dict['wind_dir_cos'] = None
-
-    if "windy" in sup_context_cols:
-        windy_arr = donkey_df['windy'].unique()
-        context_val_dict['windy'] = windy_arr
-
-    if "air_temp" in sup_context_cols:
-        air_temp_arr = donkey_df['air_temp'].unique()
-        context_val_dict['air_temp'] = air_temp_arr
-
-    if "rain" in sup_context_cols:
-        rain_arr = donkey_df['rain'].unique()
-        context_val_dict['rain'] = rain_arr
-
-    context_val_arr = [context_val_dict[col] for col in sup_context_cols if context_val_dict[col] is not None]
-    temp_contexts = np.array(list(itertools.product(*context_val_arr)))
-
-    contexts_arr = []
-    for row in temp_contexts:
-        cleaned_row = []
-        for elem in row:
-            if isinstance(elem, np.ndarray):
-                for value in elem:
-                    cleaned_row.append(value)
-            else:
-                cleaned_row.append(elem)
-        contexts_arr.append(cleaned_row)
-
-    possible_contexts = np.array(contexts_arr)
-
-    print(len(possible_contexts))
-    print(possible_contexts)
-
     # Training loop
     full_train_losses = []
     train_losses = []
     test_losses = []
     no_noise_losses = []
-    lr_scheduler_steps = []
 
     for epoch in range(1, epochs + 1):
 
@@ -234,28 +178,24 @@ def main(args):
             train_epoch_loss += loss.item()
         full_train_losses.append(train_epoch_loss / n_train)
 
-        # Cheeky unsupervised step that's not really logged
-        for k, batch in enumerate(extra_dataloader):
-            batch = noise_reg.add_noise(batch)
-            x = batch[:, :problem_dim]
-            semisup_context = batch[:, problem_dim:]
-            loss = 0
-            for unscaled_sup_context in possible_contexts:
-                sup_context = sup_context_scaler.transform([unscaled_sup_context])
-                sup_context = torch.tensor(sup_context).float().expand(
-                    (semisup_context.shape[0], len(sup_context[0]))).cuda()
-                context = torch.cat((semisup_context, sup_context), dim=1) # Mayb
+        # save every 10 epoch to log and eval
+        if epoch % 10 == 0 or epoch == epochs - 1:
+            normalizing_flow.modules.eval()
+            train_losses.append(train_epoch_loss / n_train)
+
+            no_noise_epoch_loss = 0
+            for k, batch in enumerate(train_dataloader):
+                # Add noise reg to two moons
+                x = batch[:, :problem_dim]
+                context = batch[:, problem_dim:]
+
+                # Condition the flow on the sampled covariate and calculate -log_prob = loss
                 conditioned_flow_dist = normalizing_flow.condition(context)
-                loss += -conditioned_flow_dist.log_prob(x).sum()
+                loss = -conditioned_flow_dist.log_prob(x).sum()
 
-            # Calculate gradients and take an optimizer step
-            normalizing_flow.modules.zero_grad()
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                no_noise_epoch_loss += loss.item()
+            no_noise_losses.append(no_noise_epoch_loss / n_train)
 
-        normalizing_flow.modules.eval()
-        with torch.no_grad():
             test_epoch_loss = 0
             for j, batch in enumerate(test_dataloader):
                 # Sample covariates and use them to sample from conditioned two_moons
@@ -267,30 +207,11 @@ def main(args):
                 test_loss = -conditioned_flow_dist.log_prob(x).sum()
 
                 test_epoch_loss += test_loss.item()
-
-            # save every 10 epoch to log and eval
-            if epoch % 10 == 0 or epoch == epochs - 1:
-                normalizing_flow.modules.eval()
-                train_losses.append(train_epoch_loss / n_train)
-                test_losses.append(test_epoch_loss / n_test)
-
-                no_noise_epoch_loss = 0
-                for k, batch in enumerate(train_dataloader):
-                    # Add noise reg to two moons
-                    x = batch[:, :problem_dim]
-                    context = batch[:, problem_dim:]
-
-                    # Condition the flow on the sampled covariate and calculate -log_prob = loss
-                    conditioned_flow_dist = normalizing_flow.condition(context)
-                    loss = -conditioned_flow_dist.log_prob(x).sum()
-
-                    no_noise_epoch_loss += loss.item()
-                no_noise_losses.append(no_noise_epoch_loss / n_train)
+            test_losses.append(test_epoch_loss / n_test)
 
         # Take scheduler step if needed
-        if lr_factor is not None:
-            scheduler.step(test_epoch_loss / n_test)
-            lr_scheduler_steps.append(epoch)
+        if lr_decay is not None:
+            scheduler.step()
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
@@ -298,8 +219,7 @@ def main(args):
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
 
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict,
-                    'data_split': run_idxs, 'lr_steps': lr_scheduler_steps}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict, 'data_split': run_idxs}
 
     file_name = f"{experiment_name}.pickle"
     file_path = os.path.join(results_path, file_name)
@@ -327,7 +247,6 @@ if __name__ == "__main__":
     parser.add_argument("--obs_cols", nargs="+", help="The column names for the observation data")
     parser.add_argument("--context_cols", nargs="+", help="The headers for the context data")
     parser.add_argument("--semisup_context_cols", nargs="+", help="The headers for the context data that is in sup/unsup")
-    parser.add_argument("--sup_context_cols", nargs="+", help="The headers for the context ")
 
     # Training args
     parser.add_argument("--epochs", type=int, help="number of epochs")
@@ -335,10 +254,7 @@ if __name__ == "__main__":
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
     parser.add_argument("--initial_lr", type=float, help="The initial learning rate")
-    parser.add_argument("--lr_factor", type=float, help="The factor with which the lr decay scheduler multiplies")
-    parser.add_argument("--lr_patience", type=int, help="Number of epochs with no improvement after which lr is reduced")
-    parser.add_argument("--min_lr", type=float, help="The minimum value the lr can drop to")
-
+    parser.add_argument("--lr_decay", type=float, help="The factor for the exponential lr decay")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
@@ -349,6 +265,7 @@ if __name__ == "__main__":
     parser.add_argument("--rich_context_dim", type=int, help="dimension of the generated rich context")
     parser.add_argument("--batchnorm_momentum", type=float,
                         help="Momentum of the batchnorm layers. If nothing is passed no batchnorm is used.")
+
 
     args = parser.parse_args()
 

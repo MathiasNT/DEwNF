@@ -135,6 +135,7 @@ def main(args):
     train_losses = []
     test_losses = []
     no_noise_losses = []
+    lr_scheduler_steps = []
 
     for epoch in range(1, epochs + 1):
 
@@ -156,6 +157,7 @@ def main(args):
             train_epoch_loss += loss.item()
         full_train_losses.append(train_epoch_loss / n_train)
 
+        normalizing_flow.modules.eval()
         with torch.no_grad():
             test_epoch_loss = 0
             for j, batch in enumerate(test_dataloader):
@@ -167,7 +169,6 @@ def main(args):
                 test_epoch_loss += test_loss.item()
 
             # save every 10 epoch to log and eval
-            normalizing_flow.modules.eval()
             if epoch % 10 == 0 or epoch == epochs - 1:
                 # append epoch losses to results arr
                 train_losses.append(train_epoch_loss / n_train)
@@ -187,6 +188,7 @@ def main(args):
         # Take scheduler step if needed
         if lr_factor is not None:
             scheduler.step(test_epoch_loss / n_test)
+            lr_scheduler_steps.append(epoch)
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
@@ -194,7 +196,8 @@ def main(args):
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
     experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
 
-    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
+    results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict,
+                    'lr_steps': lr_scheduler_steps}
 
     print(settings_dict)
 
