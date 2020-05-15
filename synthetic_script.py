@@ -38,6 +38,7 @@ def main(args):
     context_dropout = args.context_dropout
     coupling_dropout = args.coupling_dropout
     l2_reg = args.l2_reg
+    lr = args.lr
 
     # Data settings
     data_size = args.data_size
@@ -75,6 +76,7 @@ def main(args):
         "context_dropout": context_dropout,
         "coupling_dropout": coupling_dropout,
         "l2_reg": l2_reg,
+        "lr": lr,
         "clipped_adam": clipped_adam,
         "batchnorm_momentum": batchnorm_momentum
     }
@@ -83,7 +85,7 @@ def main(args):
     csv_path = os.path.join(data_folder, data_file)
     two_moons_df = pd.read_csv(csv_path)
     train_dataloader, test_dataloader = split_synthetic(two_moons_df, batch_size,
-                                                        data_size, cuda_exp, random_state=None)
+                                                        data_size, cuda_exp, random_state=42)
 
     context_dim = len(two_moons_df.columns) - 2
 
@@ -108,14 +110,14 @@ def main(args):
     # Setup Optimizer
     if clipped_adam is None:
         if l2_reg is None:
-            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=lr)
         else:
-            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=lr, weight_decay=l2_reg)
     else:
         if l2_reg is None:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, clip_norm=clipped_adam)
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=lr, clip_norm=clipped_adam)
         else:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg,
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=lr, weight_decay=l2_reg,
                                     clip_norm=clipped_adam)
 
     # Setup regularization
@@ -226,6 +228,7 @@ if __name__ == "__main__":
     parser.add_argument("--coupling_dropout", type=float, help="drout for the coupling conditioner nn")
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
+    parser.add_argument("---lr", type=float, help="The learning rate for the optimizer")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
