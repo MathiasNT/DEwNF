@@ -229,7 +229,7 @@ if __name__ == "__main__":
     parser.add_argument("--coupling_dropout", type=float, help="drout for the coupling conditioner nn")
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
-    parser.add_argument("---lr", type=float, help="The learning rate for the optimizer")
+    parser.add_argument("--lr", type=float, help="The learning rate for the optimizer")
 
     # flow args
     parser.add_argument("--flow_depth", type=int, help="number of layers in flow")
