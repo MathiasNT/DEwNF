@@ -3,7 +3,7 @@ from .data_utils import (searchlog_day_split, split_synthetic, get_split_idx_on_
                          searchlog_unconditional_day_split, searchlog_no_weather_day_split, simple_data_split,
                          simple_data_split_conditional, searchlog_no_weather_day_split2)
 from .misc import circle_transform
-from .model_eval import create_prob_df, create_points_df, calculate_cap_of_hubs, calculate_cap_of_model, calculate_cap_of_random
+from .model_eval import create_prob_df, create_points_df, calculate_cap_of_hubs, calculate_cap_of_model, calculate_cap_of_random, calculate_cap_of_perfect_model
 
 
 __all__ = [
@@ -27,5 +27,6 @@ __all__ = [
     'searchlog_no_weather_day_split',
     'simple_data_split',
     'simple_data_split_conditional',
-    'searchlog_no_weather_day_split2'
+    'searchlog_no_weather_day_split2',
+    'calculate_cap_of_perfect_model'
 ]
