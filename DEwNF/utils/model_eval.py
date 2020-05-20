@@ -163,3 +163,38 @@ def calculate_cap_of_random(shape, bounds, dist, df, obs_scaler):
         percent_covered_arr.append(percent_covered)
 
     return max_points_arr, max_point_vals_arr, n_covered_arr, percent_covered_arr
+
+
+def calculate_cap_of_perfect_model(shape, bounds, df):
+    points_df, delta_lat, delta_lon = create_points_df(shape, bounds)
+    cumulative_covered = 0
+    n_covered_arr = []
+    percent_covered_arr = []
+    n_logs = len(df)
+    for index, row in tqdm(points_df.iterrows()):
+        point = row.loc[['latitude', 'longitude']].values
+
+        # Find points covered by this hub
+        in_lat = (df['user_location_latitude'] >= (point[0] - delta_lat / 2)) & (
+                    df['user_location_latitude'] < (point[0] + delta_lat / 2))
+        in_lon = (df['user_location_longitude'] >= (point[1] - delta_lon / 2)) & (
+                    df['user_location_longitude'] < (point[1] + delta_lon / 2))
+        in_cover = in_lat & in_lon
+
+        # Calculate how many points is covered
+        covered_idxs = in_cover[in_cover].index
+        n_covered = len(covered_idxs)
+        n_covered_arr.append(n_covered)
+        df = df.drop(covered_idxs)
+
+    points_df['n_covered'] = n_covered_arr
+    points_df = points_df.sort_values('n_covered', ascending=False)
+    for index, row in tqdm(points_df.iterrows()):
+        cumulative_covered += row['n_covered']
+        percent_covered = cumulative_covered / n_logs
+        percent_covered_arr.append(percent_covered)
+
+    max_points_arr = points_df[['latitude', 'longitude']].values
+    n_covered_arr = points_df['n_covered'].values
+
+    return max_points_arr, n_covered_arr, percent_covered_arr
