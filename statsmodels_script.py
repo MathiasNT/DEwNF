@@ -19,6 +19,13 @@ def main(args):
     data_file = args.data_file
     extra_data_file = args.extra_data_file
 
+    file_name_test = f"{experiment_name}_test.pickle"
+    file_path_test = os.path.join(results_path, file_name_test)
+
+    print(f"Saving: {file_name_test}")
+    with open(file_path_test, 'wb') as f:
+        pickle.dump("test", f)
+
     # Data settings
     obs_cols = args.obs_cols
 
