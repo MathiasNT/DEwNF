@@ -188,7 +188,11 @@ def main(args):
         # Take scheduler step if needed
         if lr_factor is not None:
             scheduler.step(test_epoch_loss / n_test)
-            lr_scheduler_steps.append(epoch)
+            lr_scheduler_steps.append(optimizer.param_groups[0]['lr'])
+
+        if epoch % 50 == 0:
+            print(f"{epoch}: test_loss: {test_epoch_loss/n_test}")
+
 
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
