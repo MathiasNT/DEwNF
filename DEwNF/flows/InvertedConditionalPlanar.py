@@ -9,8 +9,10 @@ from torch.distributions import constraints
 import torch.nn.functional as F
 
 from torch.distributions import Transform
+from pyro.distributions.torch_transform import TransformModule
 from pyro.distributions.conditional import ConditionalTransformModule
 from pyro.nn import DenseNN
+import torch.nn as nn
 
 
 # Class below has been inverted to work in a density estimation setting.
@@ -151,3 +153,57 @@ def inverted_conditional_planar(input_dim, context_dim, hidden_dims=None):
         hidden_dims = [input_dim * 10, input_dim * 10]
     nn = DenseNN(context_dim, hidden_dims, param_dims=[1, input_dim, input_dim])
     return InvertedConditionalPlanar(nn)
+
+
+class InvertedPlanar(InvertedConditionedPlanar, TransformModule):
+    """
+    A 'planar' bijective transform with equation,
+
+        :math:`\\mathbf{y} = \\mathbf{x} + \\mathbf{u}\\tanh(\\mathbf{w}^T\\mathbf{z}+b)`
+
+    where :math:`\\mathbf{x}` are the inputs, :math:`\\mathbf{y}` are the outputs,
+    and the learnable parameters are :math:`b\\in\\mathbb{R}`,
+    :math:`\\mathbf{u}\\in\\mathbb{R}^D`, :math:`\\mathbf{w}\\in\\mathbb{R}^D` for
+    input dimension :math:`D`. For this to be an invertible transformation, the
+    condition :math:`\\mathbf{w}^T\\mathbf{u}>-1` is enforced.
+
+    Together with :class:`~pyro.distributions.TransformedDistribution` this provides
+    a way to create richer variational approximations.
+
+    Example usage:
+
+
+    The inverse of this transform does not possess an analytical solution and is
+    left unimplemented. However, the inverse is cached when the forward operation is
+    called during sampling, and so samples drawn using the planar transform can be
+    scored.
+
+    :param input_dim: the dimension of the input (and output) variable.
+    :type input_dim: int
+
+    References:
+
+    [1] Danilo Jimenez Rezende, Shakir Mohamed. Variational Inference with
+    Normalizing Flows. [arXiv:1505.05770]
+
+    """
+
+    domain = constraints.real
+    codomain = constraints.real
+    bijective = True
+    event_dim = 1
+
+    def __init__(self, input_dim):
+        super().__init__()
+
+        self.bias = nn.Parameter(torch.Tensor(1,))
+        self.u = nn.Parameter(torch.Tensor(input_dim,))
+        self.w = nn.Parameter(torch.Tensor(input_dim,))
+        self.input_dim = input_dim
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        stdv = 1. / math.sqrt(self.u.size(0))
+        self.w.data.uniform_(-stdv, stdv)
+        self.u.data.uniform_(-stdv, stdv)
+        self.bias.data.zero_()

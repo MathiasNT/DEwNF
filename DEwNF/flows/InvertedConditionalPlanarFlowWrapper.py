@@ -10,8 +10,8 @@ from ..nns import DropoutDenseNN
 
 
 def inverted_conditional_planar_flow_factory(flow_depth, problem_dim, c_net_depth, c_net_h_dim, context_dim,
-                                    context_n_h_dim, context_n_depth, rich_context_dim, batchnorm_momentum, cuda,
-                                    context_dropout=None):
+                                             context_n_h_dim, context_n_depth, rich_context_dim, batchnorm_momentum,
+                                             cuda, context_dropout=None):
     if cuda:
         base_dist = dist.Normal(torch.zeros(problem_dim).cuda(), torch.ones(problem_dim).cuda())
     else:
