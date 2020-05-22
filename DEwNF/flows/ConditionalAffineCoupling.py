@@ -1,5 +1,9 @@
 # This is the conditioned AffineCoupling flow which is pretty much the pyro AffineCoupling with the context added in.
 # I have commented all the places the code is changed to make it conditional.
+# The original code is under Apache 2.0 license - The original code trademak and license is below
+# Copyright (c) 2017-2019 Uber Technologies, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 
 import torch
 from pyro.distributions import TransformModule, ConditionalTransformModule

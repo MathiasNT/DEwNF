@@ -4,6 +4,9 @@ from .NormalizingFlowWrapper import NormalizingFlowWrapper, normalizing_flow_fac
 from .ConditionalAffineCoupling2 import ConditionalAffineCoupling2, ConditionedAffineCoupling2, conditional_affine_coupling2
 from .ConditionalNormalizingFlowWrapper2 import ConditionalNormalizingFlowWrapper2, conditional_normalizing_flow_factory2
 from .ConditionalNormalizingFlowWrapper3 import ConditionalNormalizingFlowWrapper3, conditional_normalizing_flow_factory3
+from .InvertedConditionalPlanar import InvertedConditionalPlanar, InvertedConditionedPlanar, inverted_conditional_planar
+from .InvertedConditionalPlanarFlowWrapper import inverted_conditional_planar_flow_factory
+
 __all__ = [
     'conditional_affine_coupling',
     'ConditionedAffineCoupling',
@@ -18,5 +21,9 @@ __all__ = [
     'ConditionedAffineCoupling2',
     'ConditionalAffineCoupling2',
     'ConditionalNormalizingFlowWrapper3',
-    'conditional_normalizing_flow_factory3'
+    'conditional_normalizing_flow_factory3',
+    'InvertedConditionedPlanar',
+    'InvertedConditionalPlanar',
+    'inverted_conditional_planar',
+    'inverted_conditional_planar_flow_factory'
 ]
