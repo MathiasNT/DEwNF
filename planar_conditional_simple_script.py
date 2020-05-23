@@ -177,39 +177,41 @@ def main(args):
         full_train_losses.append(train_epoch_loss / n_train)
 
         # calculate test loss
-        test_epoch_loss = 0
-        for j, batch in enumerate(test_dataloader):
-            # Sample covariates and use them to sample from conditioned two_moons
-            x = batch[:, :problem_dim]
-            context = batch[:, problem_dim:]
-
-            # Condition the flow on the sampled covariate and calculate -log_prob = loss
-            conditioned_flow_dist = normalizing_flow.condition(context)
-            test_loss = -conditioned_flow_dist.log_prob(x).sum()
-
-            test_epoch_loss += test_loss.item()
-
-        # save every 10 epoch to log and eval
-        if epoch % 10 == 0 or epoch == epochs - 1:
-            normalizing_flow.modules.eval()
-            train_losses.append(train_epoch_loss / n_train)
-            test_losses.append(test_epoch_loss / n_test)
-
-            no_noise_epoch_loss = 0
-            for k, batch in enumerate(train_dataloader):
-                # Add noise reg to two moons
+        normalizing_flow.modules.eval()
+        with torch.no_grad():
+            test_epoch_loss = 0
+            for j, batch in enumerate(test_dataloader):
+                # Sample covariates and use them to sample from conditioned two_moons
                 x = batch[:, :problem_dim]
                 context = batch[:, problem_dim:]
 
                 # Condition the flow on the sampled covariate and calculate -log_prob = loss
                 conditioned_flow_dist = normalizing_flow.condition(context)
-                loss = -conditioned_flow_dist.log_prob(x).sum()
+                test_loss = -conditioned_flow_dist.log_prob(x).sum()
 
-                no_noise_epoch_loss += loss.item()
-            no_noise_losses.append(no_noise_epoch_loss / n_train)
+                test_epoch_loss += test_loss.item()
 
-        if epoch%100 == 0:
-            print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
+            # save every 10 epoch to log and eval
+            if epoch % 10 == 0 or epoch == epochs - 1:
+                normalizing_flow.modules.eval()
+                train_losses.append(train_epoch_loss / n_train)
+                test_losses.append(test_epoch_loss / n_test)
+
+                no_noise_epoch_loss = 0
+                for k, batch in enumerate(train_dataloader):
+                    # Add noise reg to two moons
+                    x = batch[:, :problem_dim]
+                    context = batch[:, problem_dim:]
+
+                    # Condition the flow on the sampled covariate and calculate -log_prob = loss
+                    conditioned_flow_dist = normalizing_flow.condition(context)
+                    loss = -conditioned_flow_dist.log_prob(x).sum()
+
+                    no_noise_epoch_loss += loss.item()
+                no_noise_losses.append(no_noise_epoch_loss / n_train)
+
+            if epoch%100 == 0:
+                print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
 
         # Take scheduler step if needed
         if lr_factor is not None:
