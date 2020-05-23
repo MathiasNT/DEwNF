@@ -39,6 +39,10 @@ def main(args):
     noise_reg_sigma = args.noise_reg_sigma  # Used as sigma in rule of thumb and as noise in const
 
     l2_reg = args.l2_reg
+    initial_lr = args.initial_lr
+    lr_factor = args.lr_factor
+    lr_patience = args.lr_patience
+    min_lr = args.min_lr
 
     # Data settings
     obs_cols = args.obs_cols
@@ -83,7 +87,11 @@ def main(args):
         "l2_reg": l2_reg,
         "clipped_adam": clipped_adam,
         "noise_reg_schedule": args.noise_reg_scheduler,
-        "noise_reg_sigma": noise_reg_sigma
+        "noise_reg_sigma": noise_reg_sigma,
+        "initial_lr": initial_lr,
+        "lr_factor": lr_factor,
+        "lr_patience": lr_patience,
+        "min_lr": min_lr
     }
 
     print(f"Settings:\n{settings_dict}")
@@ -117,15 +125,19 @@ def main(args):
     # Setup Optimizer
     if clipped_adam is None:
         if l2_reg is None:
-            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4)
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=initial_lr)
         else:
-            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg)
+            optimizer = optim.Adam(normalizing_flow.modules.parameters(), lr=initial_lr, weight_decay=l2_reg)
     else:
         if l2_reg is None:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, clip_norm=clipped_adam)
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=initial_lr, clip_norm=clipped_adam)
         else:
-            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=1e-4, weight_decay=l2_reg,
+            optimizer = ClippedAdam(normalizing_flow.modules.parameters(), lr=initial_lr, weight_decay=l2_reg,
                                     clip_norm=clipped_adam)
+
+    if lr_factor is not None:
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=lr_factor, patience=lr_patience,
+                                                         min_lr=min_lr, verbose=True)
 
     # Setup regularization
     h = noise_reg_schedule(data_size, data_dim, noise_reg_sigma)
@@ -140,6 +152,7 @@ def main(args):
     train_losses = []
     test_losses = []
     no_noise_losses = []
+    lr_scheduler_steps = []
 
     for epoch in range(1, epochs + 1):
 
@@ -197,11 +210,17 @@ def main(args):
         if epoch%100 == 0:
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
 
+        # Take scheduler step if needed
+        if lr_factor is not None:
+            scheduler.step(test_epoch_loss / n_test)
+            lr_scheduler_steps.append(epoch)
+
         # Plot Epoch results if epoch == epochs-1:
         if epoch == epochs - 1:
             normalizing_flow.modules.eval()
             print(f"Epoch {epoch}: train loss: {train_losses[-1]} no noise loss:{no_noise_losses[-1]} test_loss: {test_losses[-1]}")
-    experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses}
+    experiment_dict = {'train': train_losses, 'test': test_losses, 'no_noise_losses': no_noise_losses,
+                       'lr_steps': lr_scheduler_steps}
 
     results_dict = {'model': normalizing_flow, 'settings': settings_dict, 'logs': experiment_dict}
 
@@ -235,6 +254,10 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, help="batch size for training")
     parser.add_argument("--l2_reg", type=float, help="How much l2 regularization the optimizer should use")
     parser.add_argument("--clipped_adam", type=float, help="The magnitude at which gradients are clipped")
+    parser.add_argument("--initial_lr", type=float, help="The initial learning rate")
+    parser.add_argument("--lr_factor", type=float, help="The factor with which the lr decay scheduler multiplies")
+    parser.add_argument("--lr_patience", type=int, help="Number of epochs with no improvement after which lr is reduced")
+    parser.add_argument("--min_lr", type=float, help="The minimum value the lr can drop to")
 
 
     # flow args
