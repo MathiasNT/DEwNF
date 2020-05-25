@@ -122,7 +122,6 @@ def main(args):
                                                                   cuda=cuda_exp,
                                                                   batchnorm_momentum=batchnorm_momentum)
 
-    print(normalizing_flow.dist.transforms)
 
     # Setup Optimizer
     if clipped_adam is None:
