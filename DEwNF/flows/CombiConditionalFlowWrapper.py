@@ -14,7 +14,7 @@ from DEwNF.flows import InvertedConditionalPlanar, ConditionalAffineCoupling2
 
 def combi_conditional_normalizing_flow_factory(flow_depth, problem_dim, c_net_depth, c_net_h_dim, context_dim,
                                           context_n_h_dim, context_n_depth, rich_context_dim, batchnorm_momentum, cuda,
-                                          coupling_dropout=None, context_dropout=None):
+                                          coupling_dropout=None, context_dropout=None, planar_first=True):
     assert (flow_depth % 2 == 0), "The flow depth must be divisible by 2 to allow both Planar and AC transforms"
 
     if cuda:
@@ -41,7 +41,11 @@ def combi_conditional_normalizing_flow_factory(flow_depth, problem_dim, c_net_de
     perms = [permute(input_dim=problem_dim, permutation=torch.tensor([1, 0])) for i in range(flow_depth//2)]
 
     # Assemble the flow
-    flows = list(itertools.chain(*zip(planars, affine_couplings, perms)))[:-1]
+    if planar_first:
+        flows = list(itertools.chain(*zip(planars, affine_couplings, perms)))[:-1]
+    else:
+        flows = list(itertools.chain(*zip(affine_couplings, planars, perms)))[:-1]
+
     # If we want batchnorm add those in. Then sandwich the steps together to a flow
     if batchnorm_momentum is None:
         batchnorms = None
