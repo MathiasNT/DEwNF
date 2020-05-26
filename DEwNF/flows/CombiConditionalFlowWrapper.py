@@ -13,8 +13,8 @@ from DEwNF.flows import InvertedConditionalPlanar, ConditionalAffineCoupling2
 
 
 def combi_conditional_normalizing_flow_factory(flow_depth, problem_dim, c_net_depth, c_net_h_dim, context_dim,
-                                          context_n_h_dim, context_n_depth, rich_context_dim, batchnorm_momentum, cuda,
-                                          coupling_dropout=None, context_dropout=None, planar_first=True):
+                                               context_n_h_dim, context_n_depth, rich_context_dim, batchnorm_momentum,
+                                               cuda, coupling_dropout=None, context_dropout=None, planar_first=True):
     assert (flow_depth % 2 == 0), "The flow depth must be divisible by 2 to allow both Planar and AC transforms"
 
     if cuda:
@@ -37,7 +37,7 @@ def combi_conditional_normalizing_flow_factory(flow_depth, problem_dim, c_net_de
     transforms = affine_couplings + planars
 
     # Permutes are needed to be able to transform all dimensions.
-    # Note that the transform is fixed here since we only have 2 dimensions. For more dimensions don't fix it and let it be random.
+    # Note that the transform is fixed here since we only have 2 dimensions. For more dimensions let it be random.
     perms = [permute(input_dim=problem_dim, permutation=torch.tensor([1, 0])) for i in range(flow_depth//2)]
 
     # Assemble the flow
@@ -58,6 +58,8 @@ def combi_conditional_normalizing_flow_factory(flow_depth, problem_dim, c_net_de
                 bn_flow.append(batchnorms[-1])
             bn_flow.append(trans)
         flows = bn_flow
+        for bn in batchnorms:
+            bn.gamma.data += torch.ones(problem_dim)
 
     # We define the conditioning network
     context_hidden_dims = [context_n_h_dim for i in range(context_n_depth)]
