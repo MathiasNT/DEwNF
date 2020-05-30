@@ -232,6 +232,7 @@ def main(args):
             loss.backward()
             optimizer.step()
             train_epoch_loss += loss.item()
+        print(train_epoch_loss)
         full_train_losses.append(train_epoch_loss / n_train)
 
         # Cheeky unsupervised step that's not really logged
