@@ -6,7 +6,7 @@ import numpy as np
 import itertools
 import torch
 
-from DEwNF.flows import inverted_conditional_planar_flow_factory
+from DEwNF.flows import conditional_normalizing_flow_factory3
 from DEwNF.utils import searchlog_day_split, get_split_idx_on_day, searchlog_semisup_day_split
 from DEwNF.regularizers import NoiseRegularizer, rule_of_thumb_noise_schedule, square_root_noise_schedule, constant_regularization_schedule
 import torch.optim as optim
@@ -130,16 +130,16 @@ def main(args):
     data_dim = problem_dim + context_dim
 
     # Define normalizing flow
-    normalizing_flow = inverted_conditional_planar_flow_factory(flow_depth=flow_depth,
-                                                                problem_dim=problem_dim,
-                                                                c_net_depth=c_net_depth,
-                                                                c_net_h_dim=c_net_h_dim,
-                                                                context_dim=context_dim,
-                                                                context_n_h_dim=context_n_h_dim,
-                                                                context_n_depth=context_n_depth,
-                                                                rich_context_dim=rich_context_dim,
-                                                                cuda=cuda_exp,
-                                                                batchnorm_momentum=batchnorm_momentum)
+    normalizing_flow = conditional_normalizing_flow_factory3(flow_depth=flow_depth,
+                                                             problem_dim=problem_dim,
+                                                             c_net_depth=c_net_depth,
+                                                             c_net_h_dim=c_net_h_dim,
+                                                             context_dim=context_dim,
+                                                             context_n_h_dim=context_n_h_dim,
+                                                             context_n_depth=context_n_depth,
+                                                             rich_context_dim=rich_context_dim,
+                                                             cuda=cuda_exp,
+                                                             batchnorm_momentum=batchnorm_momentum)
 
     # Setup Optimizer
     if clipped_adam is None:
@@ -202,8 +202,16 @@ def main(args):
 
     possible_contexts = np.array(contexts_arr)
 
+    prior_dict = {
+        True: torch.tensor( donkey_df.rain.sum() / len(donkey_df)).float(),
+        False: torch.tensor( 1 - donkey_df.rain.sum() / len(donkey_df)).float()
+    }
+
     print(len(possible_contexts))
     print(possible_contexts)
+    print(prior_dict)
+
+
 
     # Training loop
     train_losses = []
@@ -231,8 +239,7 @@ def main(args):
             loss.backward()
             optimizer.step()
             train_epoch_loss += loss.item()
-            normalizing_flow.modules.zero_grad()
-            optimizer.zero_grad()
+        print(train_epoch_loss)
 
         # Cheeky unsupervised step that's not really logged
         for k, batch in enumerate(extra_dataloader):
@@ -253,8 +260,6 @@ def main(args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            normalizing_flow.modules.zero_grad()
-            optimizer.zero_grad()
 
         normalizing_flow.modules.eval()
         with torch.no_grad():

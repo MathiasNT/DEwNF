@@ -206,7 +206,6 @@ def main(args):
     print(possible_contexts)
 
     # Training loop
-    full_train_losses = []
     train_losses = []
     test_losses = []
     no_noise_losses = []
@@ -233,7 +232,6 @@ def main(args):
             optimizer.step()
             train_epoch_loss += loss.item()
         print(train_epoch_loss)
-        full_train_losses.append(train_epoch_loss / n_train)
 
         # Cheeky unsupervised step that's not really logged
         for k, batch in enumerate(extra_dataloader):
