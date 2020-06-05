@@ -202,8 +202,14 @@ def main(args):
 
     possible_contexts = np.array(contexts_arr)
 
+    prior_dict = {
+        True: torch.tensor( donkey_df.rain.sum() / len(donkey_df)).float().cuda(),
+        False: torch.tensor( 1 - donkey_df.rain.sum() / len(donkey_df)).float().cuda()
+    }
+
     print(len(possible_contexts))
     print(possible_contexts)
+    print(prior_dict)
 
     # Training loop
     train_losses = []
@@ -246,7 +252,7 @@ def main(args):
                     (semisup_context.shape[0], len(sup_context[0]))).cuda()
                 context = torch.cat((semisup_context, sup_context), dim=1) # Mayb
                 conditioned_flow_dist = normalizing_flow.condition(context)
-                loss += -conditioned_flow_dist.log_prob(x).sum()
+                loss += -(conditioned_flow_dist.log_prob(x) * prior_dict[unscaled_sup_context[0]]).sum()
 
             # Calculate gradients and take an optimizer step
             normalizing_flow.modules.zero_grad()

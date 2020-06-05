@@ -239,7 +239,6 @@ def main(args):
             loss.backward()
             optimizer.step()
             train_epoch_loss += loss.item()
-        print(train_epoch_loss)
 
         # Cheeky unsupervised step that's not really logged
         for k, batch in enumerate(extra_dataloader):
