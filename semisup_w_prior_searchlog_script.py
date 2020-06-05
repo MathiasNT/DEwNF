@@ -253,7 +253,7 @@ def main(args):
                     (semisup_context.shape[0], len(sup_context[0]))).cuda()
                 context = torch.cat((semisup_context, sup_context), dim=1) # Mayb
                 conditioned_flow_dist = normalizing_flow.condition(context)
-                loss += -(conditioned_flow_dist.log_prob(x) * prior_dict[unscaled_sup_context]).sum()
+                loss += -(conditioned_flow_dist.log_prob(x) * prior_dict[unscaled_sup_context[0]]).sum()
 
             # Calculate gradients and take an optimizer step
             normalizing_flow.modules.zero_grad()
