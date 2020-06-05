@@ -98,7 +98,8 @@ def main(args):
         "initial_lr": initial_lr,
         "lr_factor": lr_factor,
         "lr_patience": lr_patience,
-        "min_lr": min_lr
+        "min_lr": min_lr,
+        "noise_reg_sigma": noise_reg_sigma
     }
 
     print(f"Settings:\n{settings_dict}")
